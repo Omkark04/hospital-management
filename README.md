@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🏥 Hospital Management System
 
 > **Stack:** React + TypeScript | Django REST Framework | PostgreSQL | JWT Auth | Cloudinary + Dropbox | Vercel + Railway
@@ -47,3 +48,6 @@ See `.env.example` at project root and in each sub-folder.
 | HR | Employee & attendance management |
 | Employee | Own dashboard, attendance |
 | Campaign Manager | Campaigns, referrals |
+=======
+# hospital-management
+>>>>>>> b02875eb8ceda528332b8a32ff0170eba7ad5b8b
