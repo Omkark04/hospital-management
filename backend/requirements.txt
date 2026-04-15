@@ -1,0 +1,27 @@
+# HMS Backend — Python Dependencies
+
+# Django Core
+Django==5.1.7
+
+# Django REST Framework
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+
+# Environment variable management
+python-decouple==3.8
+
+# CORS headers
+django-cors-headers==4.4.0
+
+# Email — SendGrid
+sendgrid==6.11.0
+
+# Storage — Cloudinary (credentials added later via .env)
+cloudinary==1.40.0
+
+# Storage — Dropbox (credentials added later via .env)
+dropbox==12.0.2
+
+# HTTP requests (used by storage services)
+requests==2.32.3
+
