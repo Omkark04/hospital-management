@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice - Dr. SPINE & NERVE</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+            @frame footer_frame {
+                -pdf-frame-content: footer-content;
+                left: 1cm;
+                width: 19cm;
+                bottom: 0.5cm;
+                height: 1.5cm;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.2;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+        }
+
+        .text-green { color: #2e7d32; }
+        .text-red { color: #c62828; }
+        
+        .header-table {
+            width: 100%;
+            border-bottom: 2px solid #2e7d32;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .logo-img {
+            width: 70px;
+            height: 70px;
+        }
+
+        .hospital-name {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .hospital-name span { color: #1b5e20; }
+
+        .invoice-badge {
+            background-color: #2e7d32;
+            color: #ffffff;
+            font-size: 13pt;
+            font-weight: bold;
+            padding: 6px 20px;
+            text-align: center;
+        }
+
+        .info-table {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            border: 1px solid #e0e0e0;
+        }
+
+        .card-header {
+            background-color: #e8f5e9;
+            padding: 4px 8px;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #1b5e20;
+            border-bottom: 1px solid #c8e6c9;
+            text-transform: uppercase;
+        }
+
+        .card-body {
+            padding: 8px 10px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .items-table th {
+            background-color: #2e7d32;
+            color: #ffffff;
+            padding: 8px;
+            text-align: left;
+            font-size: 8.5pt;
+        }
+
+        .items-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 9pt;
+        }
+
+        .summary-table {
+            width: 100%;
+        }
+
+        .totals-box {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .totals-box td {
+            padding: 4px 8px;
+            font-size: 9.5pt;
+        }
+
+        .grand-total {
+            background-color: #2e7d32;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .paid-watermark {
+            position: absolute;
+            top: 400px;
+            left: 50px;
+            width: 500px;
+            font-size: 120pt;
+            font-weight: bold;
+            color: #f6f6f6;
+            transform: rotate(-35deg);
+            z-index: -1;
+            text-align: center;
+        }
+
+        #footer-content {
+            font-size: 8pt;
+            color: #666;
+            border-top: 1px solid #2e7d32;
+            padding-top: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    {% if bill.payment_status == 'paid' %}
+    <div class="paid-watermark">PAID</div>
+    {% endif %}
+
+    <table class="header-table">
+        <tr>
+            <td width="15%" valign="middle">
+                <img src="d:/hospital/hospital-management/backend/billing/templates/billing/static/Logo.png" class="logo-img">
+            </td>
+            <td width="50%" valign="middle" style="padding-left: 10px;">
+                <div style="font-size: 6.5pt; font-weight: bold; color: #2e7d32; letter-spacing: 2px;">TREATMENT • AWARENESS • PREVENTION</div>
+                <div class="hospital-name">Dr. <span>SPINE</span> & NERVE</div>
+                <div style="font-size: 8.5pt; color: #666;">Spine | Knee | Muscle | Nerve Care Specialists</div>
+            </td>
+            <td width="35%" align="right" valign="top">
+                <div class="invoice-badge">INVOICE</div>
+                <div style="margin-top: 8px; font-size: 8.5pt; line-height: 1.4;">
+                    <strong>Bill No: #{{ bill.id }}</strong><br>
+                    Date: {{ bill.created_at|date:"d M Y" }}<br>
+                    Status: <span class="text-green" style="font-weight:bold;">{{ bill.get_payment_status_display|upper }}</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="info-table">
+        <tr>
+            <td width="48%" valign="top">
+                <div class="card">
+                    <div class="card-header">Patient Information</div>
+                    <div class="card-body">
+                        <div style="font-size: 11pt; font-weight: bold; color: #2e7d32;">{{ bill.patient.get_full_name }}</div>
+                        <div style="font-size: 9pt; color: #444; margin-top: 4px;">
+                            <strong>UHID:</strong> {{ bill.patient.uhid }}<br>
+                            <strong>Contact:</strong> {{ bill.patient.phone }}
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td width="4%"></td>
+            <td width="48%" valign="top">
+                <div class="card">
+                    <div class="card-header">Clinic Details</div>
+                    <div class="card-body">
+                        <div style="font-size: 10pt; font-weight: bold;">{{ bill.branch.name|default:"Badnapur Branch" }}</div>
+                        <div style="font-size: 9pt; color: #444; margin-top: 4px;">
+                            <strong>Doctor:</strong> {{ bill.doctor.get_full_name|default:"Dr. Mangesh Wagh" }}<br>
+                            <strong>Ref No:</strong> {{ bill.reference_no|default:"—" }}
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th width="8%">#</th>
+                <th width="52%">Description of Service</th>
+                <th width="10%" align="center">Qty</th>
+                <th width="15%" align="right">Price (Rs.)</th>
+                <th width="15%" align="right">Total (Rs.)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in bill.items.all %}
+            <tr>
+                <td align="center">{{ forloop.counter }}</td>
+                <td>{{ item.description }}</td>
+                <td align="center">{{ item.quantity }}</td>
+                <td align="right">{{ item.unit_price }}</td>
+                <td align="right">{{ item.total_price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table width="100%" class="summary-table">
+        <tr>
+            <td width="55%" valign="top">
+                <div class="card">
+                    <div class="card-header">Notes & Remarks</div>
+                    <div class="card-body" style="font-size: 8pt; color: #666; min-height: 40px;">
+                        {{ bill.notes|default:"Thank you for choosing Dr. SPINE & NERVE. Please bring this invoice for all future visits. We wish you a speedy recovery!" }}
+                    </div>
+                </div>
+                <div style="font-size: 9pt; margin-top: 8px;">
+                    <strong>Payment Mode:</strong> {{ bill.get_payment_mode_display|default:"Cash" }}
+                </div>
+            </td>
+            <td width="5%"></td>
+            <td width="40%" valign="top">
+                <table class="totals-box">
+                    <tr>
+                        <td>Subtotal</td>
+                        <td align="right">Rs. {{ bill.total_amount }}</td>
+                    </tr>
+                    {% if bill.discount > 0 %}
+                    <tr class="text-red">
+                        <td>Discount (-)</td>
+                        <td align="right">Rs. {{ bill.discount }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="grand-total">
+                        <td style="padding: 6px 8px;">GRAND TOTAL</td>
+                        <td align="right" style="padding: 6px 8px; font-size: 11pt;">Rs. {{ bill.net_amount|default:bill.total_amount }}</td>
+                    </tr>
+                    <tr style="font-weight: bold; color: #2e7d32;">
+                        <td>Amount Paid</td>
+                        <td align="right">Rs. {{ bill.paid_amount }}</td>
+                    </tr>
+                    <tr style="font-weight: bold; color: #c62828;">
+                        <td>Balance Due</td>
+                        <td align="right">Rs. {{ bill.balance_due }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 40px; text-align: right;">
+        <div style="width: 150px; border-top: 1px solid #333; padding-top: 5px; text-align: center; font-size: 8pt; display: inline-block;">
+            <strong>Authorised Signature</strong>
+        </div>
+    </div>
+
+    <div id="footer-content">
+        <table width="100%">
+            <tr>
+                <td width="33%" align="left">Address: Phule Nagar, Badnapur</td>
+                <td width="34%" align="center"><strong>www.drspinehms.com</strong></td>
+                <td width="33%" align="right">Contact: +91 8009 85 9008</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

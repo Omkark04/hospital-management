@@ -2,6 +2,35 @@ from django.db import models
 from django.utils import timezone
 
 
+class PrakritiChoices(models.TextChoices):
+    VATA = 'vata', 'Vata'
+    PITTA = 'pitta', 'Pitta'
+    KAPHA = 'kapha', 'Kapha'
+    VATA_PITTA = 'vata_pitta', 'Vata-Pitta'
+    PITTA_KAPHA = 'pitta_kapha', 'Pitta-Kapha'
+    VATA_KAPHA = 'vata_kapha', 'Vata-Kapha'
+    TRIDOSHA = 'tridosha', 'Tridosha'
+    UNKNOWN = 'unknown', 'Unknown'
+
+
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class Treatment(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='treatments')
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f'{self.name} ({self.department.name})'
+
+
 class GenderChoices(models.TextChoices):
     MALE = 'male', 'Male'
     FEMALE = 'female', 'Female'
@@ -74,6 +103,12 @@ class Patient(models.Model):
     medical_history = models.TextField(blank=True, help_text='General past medical history')
     allergies = models.TextField(blank=True)
     chronic_conditions = models.TextField(blank=True)
+
+    # Ayurvedic & Clinical Fields
+    primary_department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
+    interested_treatment = models.ForeignKey(Treatment, on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
+    prakriti = models.CharField(max_length=20, choices=PrakritiChoices.choices, default=PrakritiChoices.UNKNOWN)
+    chief_complaint = models.TextField(blank=True)
 
     # Storage (URLs populated once Cloudinary/Dropbox enabled)
     photo_url = models.URLField(blank=True, help_text='Cloudinary URL')
@@ -186,3 +221,27 @@ class LabReport(models.Model):
 
     def __str__(self):
         return f'{self.report_name} — {self.patient.get_full_name()}'
+
+
+class ReviewStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    APPROVED = 'approved', 'Approved'
+    REJECTED = 'rejected', 'Rejected'
+
+class Review(models.Model):
+    branch = models.ForeignKey('branches.Branch', on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
+    patient_name = models.CharField(max_length=150)
+    treatment = models.CharField(max_length=150)
+    rating = models.IntegerField(default=5)
+    quote = models.TextField()
+    status = models.CharField(max_length=20, choices=ReviewStatus.choices, default=ReviewStatus.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Review'
+        verbose_name_plural = 'Reviews'
+        db_table = 'reviews'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Review by {self.patient_name} - {self.rating} Stars'

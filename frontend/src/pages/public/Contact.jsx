@@ -7,11 +7,7 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp, FaLeaf } from 'react-icons/fa';
 
-const INITIAL = { name: '', phone: '', email: '', service: '', message: '' };
-const SERVICES = [
-  'Spine & Joint Treatment', 'Ayurvedic Therapy', 'Sujok Therapy',
-  'Advanced Therapy', 'Pain Counseling', 'General Consultation',
-];
+const INITIAL = { name: '', phone: '', email: '', message: '' };
 
 export default function Contact() {
   const [form, setForm] = useState(INITIAL);
@@ -46,10 +42,10 @@ export default function Contact() {
               Get In Touch
             </div>
             <h1 style={{ color: '#fff', marginTop: 16, marginBottom: 12, fontFamily: '"Cormorant Garamond", serif' }}>
-              Book an Appointment
+              Contact Us
             </h1>
             <p style={{ color: 'rgba(255,252,240,0.85)', maxWidth: 500, margin: '0 auto', fontSize: '1.05rem' }}>
-              Fill out the form below or call us directly. We confirm appointments same day.
+              Have a question or need to get in touch? Send us a message or call us directly.
             </p>
           </div>
         </div>
@@ -57,7 +53,7 @@ export default function Contact() {
         {/* Main content */}
         <section className="section">
           <div className="container" style={{ maxWidth: 1100 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 52 }}>
+            <div className="responsive-grid-2-1-4">
 
               {/* Contact info panel */}
               <div>
@@ -117,7 +113,7 @@ export default function Contact() {
                 </div>
               </div>
 
-              {/* Appointment form */}
+              {/* General Inquiry form */}
               <div style={{
                 background: 'var(--linen)',
                 borderRadius: 20, padding: 40,
@@ -130,22 +126,22 @@ export default function Contact() {
                       <FiCheckCircle size={40} color="var(--moss)" />
                     </div>
                     <h3 style={{ marginBottom: 10, fontFamily: '"Cormorant Garamond", serif' }}>
-                      Appointment Request Sent!
+                      Message Sent!
                     </h3>
                     <p style={{ marginBottom: 28 }}>
-                      Thank you, <strong>{form.name}</strong>! Dr. Wagh's team will call you to confirm your appointment within a few hours.
+                      Thank you, <strong>{form.name}</strong>! We have received your inquiry and will get back to you shortly.
                     </p>
                     <button className="btn btn-primary" onClick={() => { setSent(false); setForm(INITIAL); }}>
-                      Submit Another Request
+                      Send Another Message
                     </button>
                   </div>
                 ) : (
                   <>
                     <h3 style={{ marginBottom: 28, fontFamily: '"Cormorant Garamond", serif' }}>
-                      Request an Appointment
+                      Send us a Message
                     </h3>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div className="responsive-grid-2" style={{ gap: 16 }}>
                         <div className="form-group">
                           <label className="form-label">Full Name *</label>
                           <div style={{ position: 'relative' }}>
@@ -171,19 +167,11 @@ export default function Contact() {
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Treatment Required *</label>
-                        <select className="input" required value={form.service} onChange={set('service')}>
-                          <option value="">Select a service...</option>
-                          {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Describe Your Condition</label>
+                        <label className="form-label">Your Message *</label>
                         <div style={{ position: 'relative' }}>
                           <FiMessageSquare size={14} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: 14, pointerEvents: 'none' }} />
-                          <textarea className="input" rows={4}
-                            placeholder="Briefly describe your condition..."
+                          <textarea className="input" rows={5} required
+                            placeholder="How can we help you?"
                             value={form.message} onChange={set('message')}
                             style={{ paddingLeft: 36 }} />
                         </div>
@@ -194,12 +182,12 @@ export default function Contact() {
                         disabled={submitting}>
                         {submitting
                           ? <><FiClock size={16} /> Sending...</>
-                          : <><FiSend size={16} /> Request Appointment</>
+                          : <><FiSend size={16} /> Send Message</>
                         }
                       </button>
 
                       <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        Your information is completely confidential. We will call to confirm your slot.
+                        Your information is completely confidential.
                       </p>
                     </form>
                   </>

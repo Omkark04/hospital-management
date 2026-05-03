@@ -6,6 +6,10 @@ class UserRole(models.TextChoices):
     OWNER = 'owner', 'Owner'
     DOCTOR = 'doctor', 'Doctor'
     RECEPTIONIST = 'receptionist', 'Receptionist'
+    NURSE = 'nurse', 'Nurse'
+    PHARMACIST = 'pharmacist', 'Pharmacist'
+    ACCOUNTANT = 'accountant', 'Accountant'
+    MARKETING = 'marketing', 'Marketing'
     EMPLOYEE = 'employee', 'Employee'
     PATIENT = 'patient', 'Patient'
 

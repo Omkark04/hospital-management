@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { FaLink } from 'react-icons/fa';
 import { getReferrals, updateReferralStatus } from '../../../api/referrals';
 
 const STATUS_COLORS = { new: 'info', contacted: 'warning', registered: 'success', closed: 'secondary' };
@@ -46,7 +47,7 @@ export default function ReferralList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : referrals.length === 0 ? (
-          <div className="empty-state"><div className="icon">🔗</div><p>No referrals found.</p></div>
+          <div className="empty-state"><div className="icon" style={{ color: 'var(--primary)', marginBottom: 12 }}><FaLink size={40} /></div><p>No referrals found.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>

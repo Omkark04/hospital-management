@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, createBill, updatePayment } from '../../../api/billing';
+import { getBills, createBill, updateBill, updatePayment, getBillPDF } from '../../../api/billing';
 import { getPatients } from '../../../api/patients';
 import { getMedicines } from '../../../api/medicines';
+import { getPrescriptionProducts } from '../../../api/products';
+import { FaFileInvoice, FaCreditCard, FaEdit, FaPlus, FaWhatsapp, FaCalendarAlt, FaHistory } from 'react-icons/fa';
 
 const STATUS = { pending: 'danger', partial: 'warning', paid: 'success', cancelled: 'secondary' };
 
@@ -10,11 +12,13 @@ export default function BillingList() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(null);
   const [showPayModal, setShowPayModal] = useState(null);
   const [patients, setPatients] = useState([]);
   const [medicines, setMedicines] = useState([]);
+  const [products, setProducts] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, items: [{ description: '', medicine: '', quantity: 1, unit_price: '' }] });
+  const [form, setForm] = useState({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, items: [{ description: '', medicine: null, product: null, quantity: 1, unit_price: '' }] });
   const [payForm, setPayForm] = useState({ paid_amount: '', payment_method: 'cash' });
 
   const fetchBills = useCallback(() => {
@@ -28,24 +32,92 @@ export default function BillingList() {
   useEffect(() => { fetchBills(); }, [fetchBills]);
 
   const openCreate = () => {
-    setForm({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, items: [{ description: '', medicine: '', quantity: 1, unit_price: '' }] });
-    Promise.all([getPatients(), getMedicines()])
-      .then(([p, m]) => { setPatients(p.data.results || p.data); setMedicines(m.data.results || m.data); });
+    setForm({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, items: [{ description: '', medicine: null, product: null, quantity: 1, unit_price: '' }] });
+    Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
+      .then(([p, m, pr]) => { 
+        setPatients(p.data.results || p.data); 
+        setMedicines(m.data.results || m.data);
+        setProducts(pr.data.results || pr.data);
+      });
     setShowCreateModal(true);
   };
 
-  const addItem = () => setForm(p => ({ ...p, items: [...p.items, { description: '', medicine: '', quantity: 1, unit_price: '' }] }));
+  const openEdit = (bill) => {
+    setForm({
+      patient: bill.patient,
+      branch: bill.branch,
+      payment_method: bill.payment_method,
+      notes: bill.notes,
+      discount: bill.discount,
+      items: bill.items.map(i => ({ ...i }))
+    });
+    Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
+      .then(([p, m, pr]) => { 
+        setPatients(p.data.results || p.data); 
+        setMedicines(m.data.results || m.data);
+        setProducts(pr.data.results || pr.data);
+      });
+    setShowEditModal(bill);
+  };
+
+  const addItem = () => setForm(p => ({ ...p, items: [...p.items, { description: '', medicine: null, product: null, quantity: 1, unit_price: '' }] }));
   const removeItem = (i) => setForm(p => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
-  const updateItem = (i, k, v) => setForm(p => { const items = [...p.items]; items[i] = { ...items[i], [k]: v }; return { ...p, items }; });
+  const updateItem = (i, k, v) => setForm(p => { 
+    const items = [...p.items]; 
+    if (k === 'item_selection') {
+      const type = v.split(':')[0];
+      const id = v.split(':')[1];
+      if (type === 'medicine') {
+        const med = medicines.find(m => String(m.id) === id);
+        items[i] = { ...items[i], medicine: id, product: null, unit_price: med?.price || 0, description: med?.name || '' };
+      } else if (type === 'product') {
+        const prod = products.find(x => String(x.id) === id);
+        items[i] = { ...items[i], medicine: null, product: id, unit_price: prod?.final_price || 0, description: prod?.name || '' };
+      } else {
+        items[i] = { ...items[i], medicine: null, product: null };
+      }
+    } else {
+      items[i] = { ...items[i], [k]: v === '' ? null : v }; 
+    }
+    return { ...p, items }; 
+  });
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.patient) return alert('Please select a patient.');
+    if (!form.branch) {
+      const p = patients.find(x => String(x.id) === form.patient);
+      if (p?.branch) form.branch = p.branch;
+      else return alert('Patient branch not found. Please re-select the patient.');
+    }
+
     setSaving(true);
+    const payload = {
+      ...form,
+      items: form.items.map(item => ({
+        ...item,
+        medicine: item.medicine || null,
+        product: item.product || null,
+        unit_price: item.unit_price || 0
+      }))
+    };
+
     try {
-      await createBill(form);
-      setShowCreateModal(false);
+      if (showEditModal) {
+        await updateBill(showEditModal.id, payload);
+        setShowEditModal(null);
+      } else {
+        await createBill(payload);
+        setShowCreateModal(false);
+      }
       fetchBills();
-    } catch (err) { alert(JSON.stringify(err.response?.data) || 'Failed to create bill.'); }
+    } catch (err) {
+      console.error('Billing Error Object:', err);
+      const errorData = err.response?.data;
+      const msg = errorData ? (typeof errorData === 'object' ? JSON.stringify(errorData) : errorData) : 'Failed to save bill. Check connection.';
+      alert(`Error: ${msg}`);
+      console.error('Billing Error Data:', errorData);
+    }
     finally { setSaving(false); }
   };
 
@@ -60,11 +132,42 @@ export default function BillingList() {
     finally { setSaving(false); }
   };
 
+  const handleDownloadPDF = async (bill) => {
+    try {
+      const { data } = await getBillPDF(bill.id, true);
+      if (data.pdf_url) {
+        // Trigger direct download using anchor tag
+        const link = document.createElement('a');
+        link.href = data.pdf_url;
+        link.setAttribute('download', `bill_${bill.id}_${bill.patient_uhid}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        fetchBills();
+      } else {
+        alert('Could not retrieve PDF URL.');
+      }
+    } catch (err) {
+      alert('Error fetching PDF. Make sure backend dependencies are installed.');
+    }
+  };
+
+  const sendWhatsApp = (bill) => {
+    const text = `Hello ${bill.patient_name}, your bill #${bill.id} for ₹${bill.total_amount} from Dr. SPINE & नस is ready.%0A%0APlease download it here: ${bill.pdf_url || '(Processing... please refresh)'}%0A%0AThank you!`;
+    const url = `https://wa.me/91${bill.patient_phone || ''}?text=${text}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div>
       <div className="page-header">
-        <h2>Billing</h2>
-        <p>Manage patient invoices and payments.</p>
+        <div>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <FaFileInvoice style={{ color: 'var(--primary)' }} /> Clinical Billing
+          </h2>
+          <p>Generate invoices and track payments.</p>
+        </div>
         <div className="page-actions">
           <select className="input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 180 }}>
             <option value="">All Status</option>
@@ -73,7 +176,9 @@ export default function BillingList() {
             <option value="paid">Paid</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <button className="btn btn-primary" onClick={openCreate}>+ Create Bill</button>
+          <button className="btn btn-primary" onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FaPlus /> Create Bill
+          </button>
         </div>
       </div>
 
@@ -81,7 +186,12 @@ export default function BillingList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : bills.length === 0 ? (
-          <div className="empty-state"><div className="icon">🧾</div><p>No bills found.</p></div>
+          <div className="empty-state" style={{ padding: 60 }}>
+            <div className="icon" style={{ fontSize: '3rem', marginBottom: 16, color: 'var(--primary)' }}><FaFileInvoice /></div>
+            <h3>No bills yet</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 20 }}>Invoices you create will appear here.</p>
+            <button className="btn btn-primary" onClick={openCreate}>Create Your First Bill</button>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -102,11 +212,24 @@ export default function BillingList() {
                     <td style={{ textTransform: 'capitalize', fontSize: '0.875rem' }}>{b.payment_method}</td>
                     <td><span className={`badge badge-${STATUS[b.payment_status] || 'primary'}`}>{b.payment_status}</span></td>
                     <td>
-                      {b.payment_status !== 'paid' && b.payment_status !== 'cancelled' && (
-                        <button className="btn btn-success btn-sm" onClick={() => { setPayForm({ paid_amount: b.total_amount - b.discount, payment_method: 'cash' }); setShowPayModal(b); }}>
-                          💳 Pay
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {b.payment_status !== 'paid' && b.payment_status !== 'cancelled' && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(b)} title="Edit Bill">
+                            <FaEdit />
+                          </button>
+                        )}
+                        {b.payment_status !== 'paid' && b.payment_status !== 'cancelled' && (
+                          <button className="btn btn-success btn-sm" onClick={() => { setPayForm({ paid_amount: b.total_amount - b.discount, payment_method: 'cash' }); setShowPayModal(b); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <FaCreditCard /> Pay
+                          </button>
+                        )}
+                        <button className="btn btn-outline btn-sm" onClick={() => handleDownloadPDF(b)} title="Generate/Download PDF Invoice" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <FaFileInvoice /> Invoice
                         </button>
-                      )}
+                        <button className="btn btn-ghost btn-sm" style={{ color: '#25D366', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => sendWhatsApp(b)} title="Send via WhatsApp">
+                          <FaWhatsapp size={16} /> WhatsApp
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -116,20 +239,23 @@ export default function BillingList() {
         )}
       </div>
 
-      {/* Create Bill Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+      {/* Create / Edit Bill Modal */}
+      {(showCreateModal || showEditModal) && (
+        <div className="modal-overlay" onClick={() => { setShowCreateModal(false); setShowEditModal(null); }}>
           <div className="modal" style={{ maxWidth: 700 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Create Bill</h3>
-              <button className="modal-close" onClick={() => setShowCreateModal(false)}>×</button>
+              <h3>{showEditModal ? `Edit Bill #${showEditModal.id}` : 'Create Bill'}</h3>
+              <button className="modal-close" onClick={() => { setShowCreateModal(false); setShowEditModal(null); }}>×</button>
             </div>
             <div className="modal-body">
               <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div className="form-group">
                     <label className="form-label">Patient *</label>
-                    <select className="input" required value={form.patient} onChange={e => setForm(p => ({ ...p, patient: e.target.value }))}>
+                    <select className="input" required value={form.patient} onChange={e => {
+                      const p = patients.find(x => String(x.id) === e.target.value);
+                      setForm(prev => ({ ...prev, patient: e.target.value, branch: p?.branch || '' }));
+                    }}>
                       <option value="">Select patient...</option>
                       {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
                     </select>
@@ -155,15 +281,55 @@ export default function BillingList() {
                   {form.items.map((item, i) => (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr 1.5fr auto', gap: 8, marginBottom: 8, alignItems: 'end' }}>
                       <input className="input" placeholder="Description" value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} required />
-                      <select className="input" value={item.medicine} onChange={e => { const med = medicines.find(m => String(m.id) === e.target.value); updateItem(i, 'medicine', e.target.value); if (med) updateItem(i, 'unit_price', med.price); }}>
-                        <option value="">No medicine</option>
-                        {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      <select 
+                        className="input" 
+                        value={item.medicine ? `medicine:${item.medicine}` : item.product ? `product:${item.product}` : ''} 
+                        onChange={e => updateItem(i, 'item_selection', e.target.value)}
+                      >
+                        <option value="">Manual Entry / Other</option>
+                        <optgroup label="Medicines">
+                          {medicines.map(m => <option key={`m-${m.id}`} value={`medicine:${m.id}`}>{m.name}</option>)}
+                        </optgroup>
+                        <optgroup label="Products">
+                          {products.map(p => <option key={`p-${p.id}`} value={`product:${p.id}`}>{p.name}</option>)}
+                        </optgroup>
                       </select>
                       <input className="input" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} />
                       <input className="input" type="number" placeholder="Unit price" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} required />
                       {form.items.length > 1 && <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(i)}>×</button>}
                     </div>
                   ))}
+
+                  {/* Total Calculation Display */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, marginTop: 16, padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.9rem' }}>
+                      <span style={{ opacity: 0.7 }}>Subtotal: </span>
+                      <span style={{ fontWeight: 600 }}>₹{form.items.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0).toFixed(2)}</span>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>
+                      <span style={{ opacity: 0.7 }}>Discount: </span>
+                      <span style={{ fontWeight: 600 }}>-₹{Number(form.discount || 0).toFixed(2)}</span>
+                    </div>
+                    <div style={{ fontSize: '1.1rem', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ opacity: 0.8 }}>Final Total: </span>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ position: 'absolute', left: 10, fontSize: '1rem', opacity: 0.6 }}>₹</span>
+                        <input 
+                          type="number" 
+                          className="input" 
+                          step="0.01"
+                          style={{ width: 140, fontWeight: 700, fontSize: '1.2rem', color: 'var(--primary)', padding: '6px 8px 6px 24px', border: '2px solid var(--primary-light)' }}
+                          value={(form.items.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0) - Number(form.discount || 0)).toFixed(2)}
+                          onChange={e => {
+                            const subtotal = form.items.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0);
+                            const val = Number(e.target.value);
+                            const disc = subtotal - val;
+                            setForm(p => ({ ...p, discount: disc > 0 ? disc.toFixed(2) : 0 }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -177,9 +343,16 @@ export default function BillingList() {
                   </div>
                 </div>
 
-                <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
-                  <button type="button" className="btn btn-ghost" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Bill'}</button>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => { setShowCreateModal(false); setShowEditModal(null); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Saving...' : showEditModal ? 'Update Bill' : 'Create Bill'}
+                  </button>
+                  {showEditModal && (
+                    <button type="button" className="btn btn-outline" onClick={() => handleDownloadPDF(showEditModal)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FaFileInvoice /> Generate PDF
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -213,7 +386,9 @@ export default function BillingList() {
                 </div>
                 <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
                   <button type="button" className="btn btn-ghost" onClick={() => setShowPayModal(null)}>Cancel</button>
-                  <button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Processing...' : '💳 Confirm Payment'}</button>
+                  <button type="submit" className="btn btn-success" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaCreditCard /> Confirm Payment
+                  </button>
                 </div>
               </form>
             </div>

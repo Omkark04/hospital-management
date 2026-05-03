@@ -92,10 +92,11 @@ class StaffListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         qs = CustomUser.objects.exclude(role=UserRole.PATIENT)
         if user.role == UserRole.OWNER:
-            # Owner sees all staff in their branches
+            # Owner sees all staff in their branches OR unassigned staff (as they might be the ones to assign them)
             from branches.models import Branch
+            from django.db.models import Q
             branch_ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
-            qs = qs.filter(branch_id__in=branch_ids)
+            qs = qs.filter(Q(branch_id__in=branch_ids) | Q(branch__isnull=True))
         else:
             # Receptionist sees staff in own branch only
             qs = qs.filter(branch=user.branch)
@@ -122,3 +123,59 @@ class StaffDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.is_active = False
         instance.save()
         return Response({'detail': 'Staff member deactivated.'}, status=status.HTTP_200_OK)
+from .serializers import PatientRegisterSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
+from django.core.cache import cache
+import uuid
+
+# ─────────────────── Patient Registration ────────────────────
+class PatientRegisterView(generics.CreateAPIView):
+    serializer_class = PatientRegisterSerializer
+    permission_classes = [AllowAny]
+
+# ─────────────────── Password Reset (Simulation) ─────────────
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        
+        user = CustomUser.objects.filter(username=username).first()
+        if user:
+            # Generate a random token
+            token = str(uuid.uuid4())
+            # Save token in cache for 15 minutes linked to user_id
+            cache.set(f"password_reset_{token}", user.id, timeout=900)
+            
+            # SIMULATION: Print to console instead of sending email
+            print("\n" + "="*50)
+            print(f"PASSWORD RESET REQUEST FOR: {username}")
+            print(f"RESET TOKEN: {token}")
+            print(f"RESET LINK: http://localhost:5173/reset-password?token={token}")
+            print("="*50 + "\n")
+            
+            return Response({'detail': 'Password reset link sent (Check server console).'}, status=status.HTTP_200_OK)
+        
+        return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+        new_password = serializer.validated_data['new_password']
+        
+        user_id = cache.get(f"password_reset_{token}")
+        if user_id:
+            user = CustomUser.objects.filter(id=user_id).first()
+            if user:
+                user.set_password(new_password)
+                user.save()
+                cache.delete(f"password_reset_{token}")
+                return Response({'detail': 'Password reset successful.'}, status=status.HTTP_200_OK)
+        
+        return Response({'detail': 'Invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)

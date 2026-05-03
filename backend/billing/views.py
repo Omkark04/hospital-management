@@ -2,6 +2,11 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.http import HttpResponse
+from django.template.loader import get_template
+from io import BytesIO
+from xhtml2pdf import pisa
+from storage.dropbox_service import upload_file, get_shared_link, delete_file
 
 from users.permissions import IsOwnerOrReceptionist, IsPatient
 from users.models import UserRole
@@ -66,3 +71,57 @@ class MyBillsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Bill.objects.filter(patient__phone=self.request.user.phone)
+
+
+class BillPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            bill = Bill.objects.get(pk=pk)
+        except Bill.DoesNotExist:
+            return Response({'detail': 'Bill not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 1. Check if PDF already exists on Dropbox (and not forcing refresh)
+        force_refresh = request.query_params.get('refresh') == 'true'
+        filename = f"bill_{bill.id}_{bill.patient.uhid}.pdf"
+        dropbox_path = f"/hms/bills/{filename}"
+
+        if force_refresh and bill.pdf_url:
+            # Delete old file from Dropbox if it exists
+            delete_file(dropbox_path)
+            # Clear database link to ensure fresh state
+            bill.pdf_url = ""
+            bill.save()
+
+        if bill.pdf_url and not force_refresh:
+            return Response({'pdf_url': bill.pdf_url})
+
+        # 2. Render HTML to PDF
+        template = get_template('billing/invoice.html')
+        html = template.render({'bill': bill})
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+
+        if not pdf.err:
+            pdf_bytes = result.getvalue()
+            
+            # 3. Upload to Dropbox
+            upload_result = upload_file(pdf_bytes, dropbox_path)
+            
+            if upload_result:
+                # 4. Get shareable link
+                shared_link = get_shared_link(dropbox_path)
+                if shared_link:
+                    # Convert dl=0 to dl=1 for direct download
+                    final_link = shared_link.replace('?dl=0', '?dl=1')
+                    bill.pdf_url = final_link
+                    bill.save()
+                    return Response({'pdf_url': final_link})
+            
+            # Fallback: Serve PDF directly if Dropbox fails
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
+        return Response({'detail': 'Error generating PDF.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

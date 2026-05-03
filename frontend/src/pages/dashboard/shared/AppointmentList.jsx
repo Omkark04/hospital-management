@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAppointments, createAppointment, updateAppointment } from '../../../api/patients';
 import { getPatients } from '../../../api/patients';
 import { useAuth } from '../../../context/AuthContext';
+import { FaCalendarAlt, FaPlus, FaCheck, FaEdit, FaClock } from 'react-icons/fa';
 
 const STATUS_COLORS = { scheduled: 'info', completed: 'success', cancelled: 'danger', rescheduled: 'warning', no_show: 'danger' };
 
@@ -67,7 +68,9 @@ export default function AppointmentList() {
         <div className="page-actions">
           <input type="date" className="input" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 200 }} />
           {filterDate && <button className="btn btn-ghost btn-sm" onClick={() => setFilterDate('')}>Clear</button>}
-          <button className="btn btn-primary" onClick={openNew}>+ New Appointment</button>
+          <button className="btn btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FaPlus /> New Appointment
+          </button>
         </div>
       </div>
 
@@ -75,7 +78,10 @@ export default function AppointmentList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : appointments.length === 0 ? (
-          <div className="empty-state"><div className="icon">📅</div><p>No appointments found.</p></div>
+          <div className="empty-state">
+            <div className="icon" style={{ color: 'var(--primary)' }}><FaCalendarAlt /></div>
+            <p>No appointments found.</p>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -95,9 +101,13 @@ export default function AppointmentList() {
                     <td><span className={`badge badge-${STATUS_COLORS[a.status] || 'primary'}`}>{a.status}</span></td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(a)}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(a)} title="Edit">
+                          <FaEdit />
+                        </button>
                         {a.status === 'scheduled' && (
-                          <button className="btn btn-success btn-sm" onClick={() => updateStatus(a.id, 'completed')}>✓ Done</button>
+                          <button className="btn btn-success btn-sm" onClick={() => updateStatus(a.id, 'completed')} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <FaCheck /> Done
+                          </button>
                         )}
                       </div>
                     </td>
@@ -121,7 +131,20 @@ export default function AppointmentList() {
               <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">Patient *</label>
-                  <select className="input" required value={form.patient} onChange={e => setForm(p => ({ ...p, patient: e.target.value }))}>
+                  <select 
+                    className="input" 
+                    required 
+                    value={form.patient} 
+                    onChange={e => {
+                      const pId = e.target.value;
+                      const selectedPatient = patients.find(p => p.id === parseInt(pId));
+                      setForm(prev => ({ 
+                        ...prev, 
+                        patient: pId, 
+                        branch: selectedPatient?.branch || prev.branch 
+                      }));
+                    }}
+                  >
                     <option value="">Select patient...</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
                   </select>

@@ -33,6 +33,7 @@ class Bill(models.Model):
     payment_status = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     notes = models.TextField(blank=True)
+    pdf_url = models.URLField(blank=True, null=True, help_text='Link to generated PDF on Dropbox')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -66,6 +67,10 @@ class BillItem(models.Model):
     description = models.CharField(max_length=300)
     medicine = models.ForeignKey(
         'medicines.Medicine', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='bill_items'
+    )
+    product = models.ForeignKey(
+        'products.Product', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='bill_items'
     )
     quantity = models.PositiveIntegerField(default=1)

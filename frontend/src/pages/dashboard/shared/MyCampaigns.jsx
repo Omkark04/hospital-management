@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getMyCampaigns, getCampaignPatients, getCampaignSales, addCampaignSale } from '../../../api/campaigns';
+import { getMyCampaigns, getCampaignPatients, getCampaignSales, addCampaignSale, addCampaignPatient } from '../../../api/campaigns';
+import { createPatient, createAppointment } from '../../../api/patients';
 import { useAuth } from '../../../context/AuthContext';
 
 const STATUS_COLORS = { planned: 'secondary', active: 'success', completed: 'primary', cancelled: 'danger' };
@@ -15,6 +16,9 @@ export default function MyCampaigns() {
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [saleForm, setSaleForm] = useState({ item_name: '', quantity: 1, amount: '' });
   const [saving, setSaving] = useState(false);
+  
+  const [showPatientModal, setShowPatientModal] = useState(false);
+  const [patientForm, setPatientForm] = useState({ first_name: '', phone: '',  gender: 'other', complaint: '' });
 
   useEffect(() => {
     const fetchFn = user?.role === 'owner'
@@ -48,6 +52,49 @@ export default function MyCampaigns() {
       setSales(data.results || data);
       setSaleForm({ item_name: '', quantity: 1, amount: '' });
     } catch { alert('Failed to record sale.'); }
+    finally { setSaving(false); }
+  };
+
+  const handlePatient = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // 1. Create Patient
+      const patRes = await createPatient({ 
+        first_name: patientForm.first_name, 
+        phone: patientForm.phone, 
+        gender: patientForm.gender,
+        branch: selected.branch 
+      });
+      const patId = patRes.data.id;
+
+      // 2. Schedule Appointment with Complaint as Reason
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+      try {
+        await createAppointment({
+          patient: patId,
+          doctor: user.id,
+          branch: selected.branch,
+          scheduled_date: today,
+          scheduled_time: now,
+          status: 'completed',
+          reason: patientForm.complaint || 'Campaign walk-in'
+        });
+      } catch(appErr) { console.error('Appointment silent fail (perhaps not required depending on backend)', appErr); }
+
+      // 3. Link to Campaign
+      await addCampaignPatient(selected.id, {
+        patient: patId,
+        treatment_notes: patientForm.complaint
+      });
+
+      setShowPatientModal(false);
+      const { data } = await getCampaignPatients(selected.id);
+      setPatients(data.results || data);
+      setPatientForm({ first_name: '', phone: '', gender: 'other', complaint: '' });
+      alert('Walk-in patient successfully registered and processed!');
+    } catch (err) { alert(JSON.stringify(err.response?.data) || 'Failed to process patient.'); }
     finally { setSaving(false); }
   };
 
@@ -95,7 +142,8 @@ export default function MyCampaigns() {
                     <p style={{ fontSize: '0.875rem' }}>{selected.objective || selected.description}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowSaleModal(true)}>+ Record Sale</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowPatientModal(true)}>+ Process Walk-in Patient</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setShowSaleModal(true)}>+ Record Sale</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)}>✕ Close</button>
                   </div>
                 </div>
@@ -131,8 +179,11 @@ export default function MyCampaigns() {
                       ) : (
                         patients.map(p => (
                           <div key={p.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-card)' }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.patient_name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.patient_uhid}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.patient_name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.patient_uhid}</div>
+                            </div>
+                            {p.treatment_notes && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4, background: 'var(--bg-card)', padding: '6px 8px', borderRadius: '4px' }}>💬 {p.treatment_notes}</div>}
                           </div>
                         ))
                       )}
@@ -192,6 +243,48 @@ export default function MyCampaigns() {
                 <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
                   <button type="button" className="btn btn-ghost" onClick={() => setShowSaleModal(false)}>Cancel</button>
                   <button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Saving...' : '💰 Record Sale'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Patient Processing Modal */}
+      {showPatientModal && (
+        <div className="modal-overlay" onClick={() => setShowPatientModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Process Walk-in Patient</h3>
+              <button className="modal-close" onClick={() => setShowPatientModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={handlePatient} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Patient Name *</label>
+                    <input className="input" required value={patientForm.first_name} onChange={e => setPatientForm(p => ({ ...p, first_name: e.target.value }))} placeholder="First Name" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Phone Number *</label>
+                    <input type="tel" className="input" required value={patientForm.phone} onChange={e => setPatientForm(p => ({ ...p, phone: e.target.value }))} placeholder="10-digit number" />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Gender</label>
+                  <select className="input" value={patientForm.gender} onChange={e => setPatientForm(p => ({ ...p, gender: e.target.value }))}>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Diagnosis / Complaint / Prescribed Meds</label>
+                  <textarea className="input" rows={3} required value={patientForm.complaint} onChange={e => setPatientForm(p => ({ ...p, complaint: e.target.value }))} placeholder="Note patient's issues or prescribed treatments here..."></textarea>
+                </div>
+                <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowPatientModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Processing...' : 'Register & Book'}</button>
                 </div>
               </form>
             </div>

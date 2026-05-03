@@ -22,6 +22,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 class AttendanceSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source='employee.user.get_full_name', read_only=True)
+    employee_designation = serializers.CharField(source='employee.designation', read_only=True)
     marked_by_name = serializers.CharField(source='marked_by.get_full_name', read_only=True)
 
     class Meta:

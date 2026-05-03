@@ -93,6 +93,9 @@ export default function Login() {
                 {showPass ? '🙈' : '👁️'}
               </button>
             </div>
+            <div style={{ textAlign: 'right', marginTop: 4 }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--moss)' }}>Forgot password?</Link>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} disabled={loading}>
@@ -108,19 +111,13 @@ export default function Login() {
             Want to refer a patient?{' '}
             <Link to="/referral" style={{ color: 'var(--primary)' }}>Submit a referral</Link>
           </p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 8 }}>
+            New patient?{' '}
+            <Link to="/register" style={{ color: 'var(--moss)', fontWeight: 'bold' }}>Register Here</Link>
+          </p>
         </div>
 
-        {/* Role hints */}
-        <div style={{ marginTop: 24, padding: 16, background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-card)' }}>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Role-Based Access
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {['👑 Owner', '🩺 Doctor', '🗂 Receptionist', '👤 Employee', '🧑‍⚕️ Patient'].map(r => (
-              <span key={r} className="badge badge-primary" style={{ fontSize: '0.7rem' }}>{r}</span>
-            ))}
-          </div>
-        </div>
+
 
         <div style={{ textAlign: 'center', marginTop: 20 }}>
           <Link to="/" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>← Back to website</Link>

@@ -6,6 +6,9 @@ export const createPatient = (data) => api.post('/patients/', data);
 export const updatePatient = (id, data) => api.put(`/patients/${id}/`, data);
 export const getMyProfile = () => api.get('/patients/me/');
 
+export const getDepartments = () => api.get('/patients/departments/');
+export const getTreatments = (departmentId) => api.get('/patients/treatments/', { params: departmentId ? { department: departmentId } : {} });
+
 export const getAppointments = (params) => api.get('/patients/appointments/', { params });
 export const createAppointment = (data) => api.post('/patients/appointments/', data);
 export const updateAppointment = (id, data) => api.put(`/patients/appointments/${id}/`, data);

@@ -13,24 +13,28 @@ export default function CampaignList() {
   const [showModal, setShowModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(null);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', branch: '', start_date: '', end_date: '', location: '', objective: '', status: 'planned', target_registrations: '' });
+  const [form, setForm] = useState({ name: '', branch: '', start_date: '', end_date: '', location: '', objective: '', status: 'planned', target_registrations: '', assigned_doctor: '' });
   const [assignForm, setAssignForm] = useState({ user: '', role_in_campaign: 'manager' });
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    Promise.all([getCampaigns(), getBranches()]).then(([c, b]) => {
-      setCampaigns(c.data.results || c.data);
-      setBranches(b.data.results || b.data);
-    }).finally(() => setLoading(false));
+    Promise.all([getCampaigns(), getBranches(), getStaff()])
+      .then(([c, b, s]) => {
+        setCampaigns(c.data.results || c.data);
+        setBranches(b.data.results || b.data);
+        setStaff(s.data.results || s.data);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openModal = (item = null) => {
     setEditItem(item);
-    setForm(item ? { name: item.name, branch: item.branch, start_date: item.start_date, end_date: item.end_date, location: item.location || '', objective: item.objective || '', status: item.status, target_registrations: item.target_registrations || '' }
-                  : { name: '', branch: '', start_date: '', end_date: '', location: '', objective: '', status: 'planned', target_registrations: '' });
+    setForm(item ? { name: item.name, branch: item.branch, start_date: item.start_date, end_date: item.end_date, location: item.location || '', objective: item.objective || '', status: item.status, target_registrations: item.target_registrations || '', assigned_doctor: '' }
+                  : { name: '', branch: '', start_date: '', end_date: '', location: '', objective: '', status: 'planned', target_registrations: '', assigned_doctor: '' });
     setShowModal(true);
   };
 
@@ -38,8 +42,18 @@ export default function CampaignList() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (editItem) await updateCampaign(editItem.id, form);
-      else await createCampaign(form);
+      if (editItem) {
+        await updateCampaign(editItem.id, form);
+      } else {
+        const res = await createCampaign(form);
+        if (form.assigned_doctor) {
+          try {
+            await assignCampaignManager({ campaign: res.data.id, user: form.assigned_doctor });
+          } catch(err) {
+            console.error("Failed to automatically assign doctor", err);
+          }
+        }
+      }
       setShowModal(false);
       fetchData();
     } catch (err) { alert(JSON.stringify(err.response?.data) || 'Failed.'); }
@@ -118,11 +132,22 @@ export default function CampaignList() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div className="form-group">
                     <label className="form-label">Branch *</label>
-                    <select className="input" required value={form.branch} onChange={e => setForm(p => ({ ...p, branch: e.target.value }))}>
+                    <select className="input" required value={form.branch} onChange={e => setForm(p => ({ ...p, branch: e.target.value, assigned_doctor: '' }))}>
                       <option value="">Select branch...</option>
                       {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
                   </div>
+                  {!editItem && form.branch && (
+                    <div className="form-group">
+                      <label className="form-label">Assign Doctor to Campaign</label>
+                      <select className="input" value={form.assigned_doctor} onChange={e => setForm(p => ({ ...p, assigned_doctor: e.target.value }))}>
+                        <option value="">Do not assign yet</option>
+                        {staff.filter(s => s.role === 'doctor' && s.branch == form.branch).map(s => (
+                          <option key={s.id} value={s.id}>Dr. {s.first_name} {s.last_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label className="form-label">Status</label>
                     <select className="input" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>

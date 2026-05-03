@@ -8,9 +8,16 @@ import { GiHandBandage, GiSpineArrow } from 'react-icons/gi';
 import { BsLightningChargeFill } from 'react-icons/bs';
 import { RiMentalHealthLine } from 'react-icons/ri';
 
+import imgSpine from '../../assets/Services/Spine Treatment.jpg';
+import imgAyurveda from '../../assets/Services/Ayurvedic Therapies.jpg';
+import imgSujok from '../../assets/Services/Sujok Therapies.jpg';
+import imgAdvanced from '../../assets/Services/Advanced Therapy.jpg';
+import imgCounseling from '../../assets/Services/Councelling.jpg';
+
 const categories = [
   {
     id: 'spine',
+    image: imgSpine,
     Icon: GiSpineArrow,
     title: 'Spine & Joint Treatments',
     tagline: 'Non-Surgical Relief for Chronic Pain',
@@ -30,6 +37,7 @@ const categories = [
   },
   {
     id: 'ayurveda',
+    image: imgAyurveda,
     Icon: FaLeaf,
     title: 'Ayurvedic Therapies',
     tagline: 'Ancient Healing, Modern Results',
@@ -47,6 +55,7 @@ const categories = [
   },
   {
     id: 'sujok',
+    image: imgSujok,
     Icon: GiHandBandage,
     title: 'Sujok Therapy',
     tagline: 'Non-Invasive, Drug-Free Pain Relief',
@@ -61,6 +70,7 @@ const categories = [
   },
   {
     id: 'advanced',
+    image: imgAdvanced,
     Icon: BsLightningChargeFill,
     title: 'Advanced Therapy Support',
     tagline: 'Cutting-Edge Equipment for Faster Recovery',
@@ -77,6 +87,7 @@ const categories = [
   },
   {
     id: 'counseling',
+    image: imgCounseling,
     Icon: RiMentalHealthLine,
     title: 'Counseling & Lifestyle Guidance',
     tagline: 'Long-Term Pain Prevention',
@@ -118,7 +129,7 @@ export default function Services() {
             <p style={{ color: 'rgba(255,252,240,0.85)', maxWidth: 600, margin: '0 auto 28px', fontSize: '1.05rem' }}>
               Five distinct areas of specialization working together to treat your condition naturally and effectively — without surgery.
             </p>
-            <Link to="/contact" className="btn btn-gold btn-lg">
+            <Link to="/book" className="btn btn-gold btn-lg">
               <FiCalendar size={16} /> Book a Consultation
             </Link>
           </div>
@@ -150,16 +161,16 @@ export default function Services() {
             className="section"
             style={{ background: i % 2 === 0 ? 'var(--linen)' : 'var(--parchment)', scrollMarginTop: 130 }}>
             <div className="container">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+              <div className="responsive-grid-2" style={{ alignItems: 'center' }}>
                 {/* Info block */}
                 <div style={{ order: i % 2 === 0 ? 0 : 1 }}>
                   <div className="section-tag" style={{ background: cat.bg, color: cat.color, borderColor: `${cat.color}30` }}>
                     <CatIcon size={13} /> {cat.title}
                   </div>
                   <h2 style={{ marginTop: 18, marginBottom: 10 }}>{cat.tagline}</h2>
-                  <p style={{ lineHeight: 1.85, marginBottom: 28 }}>{cat.desc}</p>
+                  <p className="section-desc" style={{ lineHeight: 1.85, marginBottom: 28 }}>{cat.desc}</p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28 }}>
+                  <div className="responsive-grid-2" style={{ gap: 10, marginBottom: 28 }}>
                     {cat.treatments.map(t => (
                       <div key={t} style={{
                         display: 'flex', gap: 8, padding: '10px 12px',
@@ -172,28 +183,40 @@ export default function Services() {
                     ))}
                   </div>
 
-                  <Link to="/contact" className="btn btn-primary" style={{ gap: 8 }}>
+                  <Link to="/book" className="btn btn-primary" style={{ gap: 8 }}>
                     Book This Treatment <FiArrowRight size={14} />
                   </Link>
                 </div>
 
                 {/* Visual block */}
-                <div style={{ order: i % 2 === 0 ? 1 : 0 }}>
+                <div style={{ order: i % 2 === 0 ? 1 : 0, height: '100%', minHeight: 380 }}>
                   <div style={{
-                    background: `linear-gradient(135deg, ${cat.bg} 0%, ${cat.color}14 100%)`,
+                    position: 'relative',
                     borderRadius: 24,
-                    border: `1px solid ${cat.color}22`,
-                    padding: 52,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    justifyContent: 'center', minHeight: 320, textAlign: 'center',
+                    overflow: 'hidden',
+                    border: `1px solid ${cat.color}30`,
+                    height: '100%',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.06)'
                   }}>
-                    <CatIcon size={80} color={cat.color} style={{ opacity: 0.85, marginBottom: 24 }} />
-                    <h3 style={{ color: cat.color, marginBottom: 10 }}>{cat.title}</h3>
-                    <p style={{ fontSize: '0.875rem', maxWidth: 240 }}>
-                      {cat.treatments.length} specialised treatments available
-                    </p>
-                    <div style={{ marginTop: 24, padding: '10px 22px', background: cat.color, borderRadius: 999, color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>
-                      {cat.tagline}
+                    <img src={cat.image} alt={cat.title} style={{
+                      width: '100%', height: '100%', objectFit: 'cover',
+                      position: 'absolute', top: 0, left: 0
+                    }} />
+                    
+                    {/* Overlay gradient */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)`,
+                      display: 'flex', flexDirection: 'column',
+                      justifyContent: 'flex-end', padding: 40
+                    }}>
+                      <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6, opacity: 0.9 }}>
+                        {cat.treatments.length} Specialised Treatments
+                      </div>
+                      <h3 style={{ color: '#fff', marginBottom: 12 }}>{cat.title}</h3>
+                      <div style={{ display: 'inline-block', padding: '8px 18px', background: cat.color, borderRadius: 999, color: '#fff', fontWeight: 600, fontSize: '0.8rem', alignSelf: 'flex-start' }}>
+                        {cat.tagline}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -221,7 +244,7 @@ export default function Services() {
               style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.32)', backdropFilter: 'blur(8px)', gap: 8 }}>
               <FaWhatsapp size={18} /> WhatsApp
             </a>
-            <Link to="/contact" className="btn btn-lg"
+            <Link to="/book" className="btn btn-lg"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.32)', backdropFilter: 'blur(8px)', gap: 8 }}>
               <FiCalendar size={15} /> Book Consultation
             </Link>

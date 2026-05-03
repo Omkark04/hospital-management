@@ -62,7 +62,8 @@ class Prescription(models.Model):
 
 class PrescriptionItem(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='items')
-    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name='prescription_items')
+    medicine = models.ForeignKey('medicines.Medicine', on_delete=models.PROTECT, related_name='prescription_items', null=True, blank=True)
+    product = models.ForeignKey('products.Product', on_delete=models.PROTECT, related_name='prescription_items', null=True, blank=True)
     dosage = models.CharField(max_length=100, help_text='e.g., 1-0-1, 500mg')
     duration = models.CharField(max_length=100, help_text='e.g., 5 days, 1 week')
     instructions = models.TextField(blank=True)

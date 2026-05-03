@@ -9,12 +9,12 @@ from .models import Employee, Attendance, LeaveApplication
 from .serializers import EmployeeSerializer, AttendanceSerializer, LeaveApplicationSerializer, LeaveReviewSerializer
 
 
-def branch_qs(qs, user):
+def branch_qs(qs, user, prefix=''):
     if user.role == UserRole.OWNER:
         from branches.models import Branch
         ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
-        return qs.filter(branch_id__in=ids)
-    return qs.filter(branch=user.branch)
+        return qs.filter(**{f"{prefix}branch_id__in": ids})
+    return qs.filter(**{f"{prefix}branch": user.branch})
 
 
 # ─────────────────── Employees ───────────────────────────────
@@ -50,7 +50,7 @@ class AttendanceListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = Attendance.objects.select_related('employee__branch')
-        qs = branch_qs(qs, self.request.user)
+        qs = branch_qs(qs, self.request.user, prefix='employee__')
         date = self.request.query_params.get('date')
         if date:
             qs = qs.filter(date=date)
@@ -68,7 +68,7 @@ class AttendanceDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsOwnerOrReceptionist]
 
     def get_queryset(self):
-        return branch_qs(Attendance.objects.all(), self.request.user)
+        return branch_qs(Attendance.objects.all(), self.request.user, prefix='employee__')
 
 
 class MyAttendanceView(generics.ListAPIView):
@@ -93,7 +93,7 @@ class LeaveListCreateView(generics.ListCreateAPIView):
         if user.role == UserRole.EMPLOYEE:
             employee = Employee.objects.filter(user=user).first()
             return LeaveApplication.objects.filter(employee=employee) if employee else LeaveApplication.objects.none()
-        return branch_qs(LeaveApplication.objects.all(), user)
+        return branch_qs(LeaveApplication.objects.all(), user, prefix='employee__')
 
     def perform_create(self, serializer):
         employee = Employee.objects.get(user=self.request.user)
@@ -109,7 +109,7 @@ class LeaveDetailView(generics.RetrieveAPIView):
         if user.role == UserRole.EMPLOYEE:
             employee = Employee.objects.filter(user=user).first()
             return LeaveApplication.objects.filter(employee=employee)
-        return branch_qs(LeaveApplication.objects.all(), user)
+        return branch_qs(LeaveApplication.objects.all(), user, prefix='employee__')
 
 
 class LeaveReviewView(APIView):

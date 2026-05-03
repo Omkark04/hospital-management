@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { getProfile, updateProfile, changePassword } from '../../../api/auth';
+import { FaMapMarkerAlt, FaEdit, FaCheckCircle, FaTimesCircle, FaLock } from 'react-icons/fa';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -28,10 +29,10 @@ export default function ProfilePage() {
     try {
       await updateProfile(form);
       await refreshUser();
-      setSaveMsg('✅ Profile updated successfully.');
+      setSaveMsg('Profile updated successfully.');
       setEditing(false);
     } catch (err) {
-      setSaveMsg('❌ ' + (err.response?.data?.detail || 'Failed to update.'));
+      setSaveMsg(err.response?.data?.detail || 'Failed to update.');
     } finally {
       setSaving(false);
     }
@@ -48,7 +49,7 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       await changePassword({ old_password: pwForm.old_password, new_password: pwForm.new_password });
-      setPwMsg('✅ Password changed successfully.');
+      setPwMsg('Password changed successfully.');
       setPwForm({ old_password: '', new_password: '', confirm: '' });
     } catch (err) {
       setPwError(err.response?.data?.old_password?.[0] || err.response?.data?.detail || 'Failed to change password.');
@@ -82,16 +83,23 @@ export default function ProfilePage() {
               </span>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>@{profile?.username}</span>
               {profile?.branch_name && (
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>📍 {profile.branch_name}</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <FaMapMarkerAlt size={12} /> {profile.branch_name}
+                </span>
               )}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(!editing)}>
-            {editing ? 'Cancel' : '✏️ Edit'}
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(!editing)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {editing ? 'Cancel' : <><FaEdit /> Edit</>}
           </button>
         </div>
 
-        {saveMsg && <div className={`alert ${saveMsg.startsWith('✅') ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16 }}>{saveMsg}</div>}
+        {saveMsg && (
+          <div className={`alert ${saveMsg.includes('success') ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {saveMsg.includes('success') ? <FaCheckCircle /> : <FaTimesCircle />}
+            {saveMsg}
+          </div>
+        )}
 
         {editing ? (
           <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -139,9 +147,19 @@ export default function ProfilePage() {
 
       {/* Change password */}
       <div className="card card-body">
-        <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🔐 Change Password</h4>
-        {pwMsg && <div className="alert alert-success" style={{ marginBottom: 14 }}>{pwMsg}</div>}
-        {pwError && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{pwError}</div>}
+        <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FaLock /> Change Password
+        </h4>
+        {pwMsg && (
+          <div className="alert alert-success" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FaCheckCircle /> {pwMsg}
+          </div>
+        )}
+        {pwError && (
+          <div className="alert alert-danger" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FaTimesCircle /> {pwError}
+          </div>
+        )}
         <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="form-group">
             <label className="form-label">Current Password *</label>
@@ -158,7 +176,9 @@ export default function ProfilePage() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-secondary" disabled={saving}>{saving ? 'Changing...' : '🔐 Change Password'}</button>
+            <button type="submit" className="btn btn-secondary" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FaLock /> {saving ? 'Changing...' : 'Change Password'}
+            </button>
           </div>
         </form>
       </div>

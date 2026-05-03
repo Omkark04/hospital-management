@@ -1,20 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getPrescriptions } from '../../../api/medicines';
 import { getPatients } from '../../../api/patients';
 import { getMedicines } from '../../../api/medicines';
 import { createPrescription } from '../../../api/medicines';
+import { getPrescriptionProducts } from '../../../api/products';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function PrescriptionList() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [patients, setPatients] = useState([]);
-  const [medicines, setMedicines] = useState([]);
-  const [form, setForm] = useState({ patient: '', notes: '', items: [{ medicine: '', dosage: '', duration: '', instructions: '', quantity: 1 }] });
+  const [availableItems, setAvailableItems] = useState([]);
+  const [form, setForm] = useState({ patient: '', appointment: '', notes: '', items: [{ medicine: '', product: '', dosage: '', duration: '', instructions: '', quantity: 1 }] });
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Parse query params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pId = params.get('patientId');
+    const aId = params.get('appointmentId');
+    if (pId) {
+      setForm(prev => ({ ...prev, patient: pId, appointment: aId || null }));
+      Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
+        .then(([p, m, pr]) => {
+          setPatients(p.data.results || p.data);
+          const meds = (m.data.results || m.data).map(x => ({ ...x, type: 'medicine' }));
+          const prods = (pr.data.results || pr.data).map(x => ({ ...x, type: 'product' }));
+          setAvailableItems([...meds, ...prods]);
+          setShowModal(true);
+        });
+    }
+  }, [location.search]);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -27,32 +49,60 @@ export default function PrescriptionList() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openNew = () => {
-    setForm({ patient: '', notes: '', items: [{ medicine: '', dosage: '', duration: '', instructions: '', quantity: 1 }] });
-    Promise.all([getPatients(), getMedicines()])
-      .then(([p, m]) => {
+    setForm({ patient: '', appointment: null, notes: '', items: [{ medicine: null, product: null, dosage: '', duration: '', instructions: '', quantity: 1 }] });
+    Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
+      .then(([p, m, pr]) => {
         setPatients(p.data.results || p.data);
-        setMedicines(m.data.results || m.data);
+        const meds = (m.data.results || m.data).map(x => ({ ...x, type: 'medicine' }));
+        const prods = (pr.data.results || pr.data).map(x => ({ ...x, type: 'product' }));
+        setAvailableItems([...meds, ...prods]);
       });
     setShowModal(true);
   };
 
-  const addItem = () => setForm(p => ({ ...p, items: [...p.items, { medicine: '', dosage: '', duration: '', instructions: '', quantity: 1 }] }));
+  const addItem = () => setForm(p => ({ ...p, items: [...p.items, { medicine: null, product: null, dosage: '', duration: '', instructions: '', quantity: 1 }] }));
   const removeItem = (i) => setForm(p => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
   const updateItem = (i, field, val) => setForm(p => {
     const items = [...p.items];
-    items[i] = { ...items[i], [field]: val };
+    if (field === 'item_selection') {
+      const selected = availableItems.find(x => x.id === parseInt(val.split(':')[1]) && x.type === val.split(':')[0]);
+      if (selected?.type === 'medicine') {
+        items[i] = { ...items[i], medicine: selected.id, product: null };
+      } else if (selected?.type === 'product') {
+        items[i] = { ...items[i], medicine: null, product: selected.id };
+      } else {
+        items[i] = { ...items[i], medicine: null, product: null };
+      }
+    } else {
+      items[i] = { ...items[i], [field]: val };
+    }
     return { ...p, items };
   });
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.patient) return alert('Please select a patient.');
+
     setSaving(true);
+    const payload = {
+      ...form,
+      appointment: form.appointment || null,
+      items: form.items.map(item => ({
+        ...item,
+        medicine: item.medicine || null,
+        product: item.product || null
+      }))
+    };
+
     try {
-      await createPrescription(form);
+      await createPrescription(payload);
       setShowModal(false);
       fetchData();
+      if (form.appointment) navigate('/dashboard');
     } catch (err) {
-      alert(err.response?.data?.detail || JSON.stringify(err.response?.data) || 'Failed to save.');
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to save.';
+      alert(msg);
+      console.error('Prescription Error:', err.response?.data);
     } finally {
       setSaving(false);
     }
@@ -91,7 +141,7 @@ export default function PrescriptionList() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {rx.items.map((item, i) => (
                       <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: 12, padding: '10px 12px', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
-                        <div><span style={{ color: 'var(--primary)', fontWeight: 600 }}>💊 {item.medicine_name}</span></div>
+                        <div><span style={{ color: 'var(--primary)', fontWeight: 600 }}>💊 {item.item_name}</span></div>
                         <div><span style={{ color: 'var(--text-muted)' }}>Dosage:</span> {item.dosage}</div>
                         <div><span style={{ color: 'var(--text-muted)' }}>Duration:</span> {item.duration}</div>
                         <div style={{ color: 'var(--text-muted)' }}>{item.instructions}</div>
@@ -109,7 +159,7 @@ export default function PrescriptionList() {
       {/* New Prescription Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 850 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>New Prescription</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
@@ -129,36 +179,61 @@ export default function PrescriptionList() {
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center' }}>💊 Medicines *</label>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={addItem}>+ Add</button>
                   </div>
-                  {form.items.map((item, i) => (
-                    <div key={i} style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', padding: 14, marginBottom: 10 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 8 }}>
-                        <div className="form-group">
-                          <label className="form-label">Medicine</label>
-                          <select className="input" value={item.medicine} onChange={e => updateItem(i, 'medicine', e.target.value)}>
-                            <option value="">Select...</option>
-                            {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Quantity</label>
-                          <input type="number" min={1} className="input" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} />
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <div className="form-group">
-                          <label className="form-label">Dosage</label>
-                          <input className="input" value={item.dosage} onChange={e => updateItem(i, 'dosage', e.target.value)} placeholder="e.g. 1-0-1" />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Duration</label>
-                          <input className="input" value={item.duration} onChange={e => updateItem(i, 'duration', e.target.value)} placeholder="e.g. 5 days" />
-                        </div>
-                      </div>
-                      {form.items.length > 1 && (
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(i)} style={{ marginTop: 8 }}>Remove</button>
-                      )}
+                  {form.items.length > 0 && (
+                    <div className="table-wrapper" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' }}>
+                            <th style={{ padding: '8px 10px', textAlign: 'left' }}>Medicine / Product</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'left', width: 100 }}>Dosage</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'left', width: 100 }}>Duration</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'left', width: 70 }}>Qty</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'left' }}>Instructions</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'center', width: 50 }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {form.items.map((item, i) => (
+                            <tr key={i} style={{ borderBottom: i === form.items.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                              <td style={{ padding: '6px' }}>
+                                <select 
+                                  className="input input-sm" 
+                                  value={item.medicine ? `medicine:${item.medicine}` : item.product ? `product:${item.product}` : ''} 
+                                  onChange={e => updateItem(i, 'item_selection', e.target.value)}
+                                  required
+                                >
+                                  <option value="">Select...</option>
+                                  <optgroup label="Clinic Medicines">
+                                    {availableItems.filter(x => x.type === 'medicine').map(m => <option key={`m${m.id}`} value={`medicine:${m.id}`}>{m.name}</option>)}
+                                  </optgroup>
+                                  <optgroup label="Health Store Products">
+                                    {availableItems.filter(x => x.type === 'product').map(p => <option key={`p${p.id}`} value={`product:${p.id}`}>{p.name}</option>)}
+                                  </optgroup>
+                                </select>
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input className="input input-sm" value={item.dosage} onChange={e => updateItem(i, 'dosage', e.target.value)} placeholder="1-0-1" />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input className="input input-sm" value={item.duration} onChange={e => updateItem(i, 'duration', e.target.value)} placeholder="5 days" />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input type="number" min={1} className="input input-sm" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input className="input input-sm" value={item.instructions} onChange={e => updateItem(i, 'instructions', e.target.value)} placeholder="After food" />
+                              </td>
+                              <td style={{ padding: '6px', textAlign: 'center' }}>
+                                {form.items.length > 1 && (
+                                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(i)} style={{ padding: '2px 8px' }}>×</button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 <div className="form-group">

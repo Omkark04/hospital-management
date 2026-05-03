@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getMyProfile, getAppointments } from '../../../api/patients';
 import { getMyBills } from '../../../api/billing';
+import { FaUserCircle, FaCalendarAlt, FaFileInvoiceDollar, FaClock, FaHeartbeat } from 'react-icons/fa';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -24,7 +25,9 @@ export default function PatientDashboard() {
   return (
     <div>
       <div style={{ marginBottom: 32 }}>
-        <h2>Hello, {user?.full_name?.split(' ')[0] || 'Patient'} 🧑‍⚕️</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          Hello, {user?.full_name?.split(' ')[0] || 'Patient'} <FaHeartbeat style={{ color: 'var(--danger)' }} />
+        </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: 6 }}>Your personal health portal.</p>
       </div>
 
@@ -48,13 +51,13 @@ export default function PatientDashboard() {
 
       <div className="stats-grid" style={{ marginBottom: 36 }}>
         <div className="stat-card cyan">
-          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}>📅</div>
+          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}><FaCalendarAlt /></div>
           <div className="stat-label">Appointments</div>
           <div className="stat-value">{appointments.length}</div>
           <Link to="/dashboard/my-appointments" style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: 8, display: 'block' }}>View all →</Link>
         </div>
         <div className="stat-card orange">
-          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}>🧾</div>
+          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}><FaFileInvoiceDollar /></div>
           <div className="stat-label">Pending Bills</div>
           <div className="stat-value">₹{pendingAmount.toFixed(0)}</div>
           <Link to="/dashboard/my-bills" style={{ fontSize: '0.8rem', color: 'var(--warning)', marginTop: 8, display: 'block' }}>View →</Link>
@@ -64,16 +67,18 @@ export default function PatientDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         {/* Appointments */}
         <div className="card">
-          <div className="card-header"><h4>📅 My Appointments</h4></div>
+          <div className="card-header"><h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FaCalendarAlt /> My Appointments</h4></div>
           <div className="card-body" style={{ padding: 0 }}>
             {appointments.length === 0 ? (
-              <div className="empty-state"><div className="icon">📅</div><p>No appointments found</p></div>
+              <div className="empty-state"><div className="icon"><FaCalendarAlt /></div><p>No appointments found</p></div>
             ) : (
               appointments.map(a => (
                 <div key={a.id} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.scheduled_date}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏰ {a.scheduled_time} · {a.doctor_name || 'Doctor'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <FaClock size={12} /> {a.scheduled_time} · {a.doctor_name || 'Doctor'}
+                    </div>
                   </div>
                   <span className={`badge badge-${a.status === 'completed' ? 'success' : a.status === 'cancelled' ? 'danger' : 'info'}`}>{a.status}</span>
                 </div>
@@ -84,10 +89,10 @@ export default function PatientDashboard() {
 
         {/* Bills */}
         <div className="card">
-          <div className="card-header"><h4>🧾 My Bills</h4></div>
+          <div className="card-header"><h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FaFileInvoiceDollar /> My Bills</h4></div>
           <div className="card-body" style={{ padding: 0 }}>
             {bills.length === 0 ? (
-              <div className="empty-state"><div className="icon">🧾</div><p>No bills found</p></div>
+              <div className="empty-state"><div className="icon"><FaFileInvoiceDollar /></div><p>No bills found</p></div>
             ) : (
               bills.map(b => (
                 <div key={b.id} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

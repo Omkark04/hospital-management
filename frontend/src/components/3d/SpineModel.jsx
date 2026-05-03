@@ -33,7 +33,7 @@ export default function SpineModel() {
       />
       <pointLight position={[2, 0, 4]} intensity={2.0} color="#f0dfa8" distance={10} />
       
-      <group position={[3.5, -0.5, 0]} rotation={[0, -Math.PI / 8, 0]}>
+      <group position={[0, -0.5, 0]} rotation={[0, -Math.PI / 8, 0]}>
         <group ref={groupRef} scale={4}>
           <primitive object={scene} />
         </group>

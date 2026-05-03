@@ -2,173 +2,187 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PublicNavbar from '../../components/layout/PublicNavbar';
 import PublicFooter from '../../components/layout/PublicFooter';
-import { getPublicProducts, submitEnquiry } from '../../api/products';
-import { FiPackage, FiSearch, FiCheckCircle } from 'react-icons/fi';
-import { FaLeaf, FaWhatsapp } from 'react-icons/fa';
-import { GiPill, GiHealthCapsule, GiStethoscope } from 'react-icons/gi';
-
-const categories = [
-  { value: '', label: 'All Products', Icon: FiPackage },
-  { value: 'medicine', label: 'Medicine', Icon: GiPill },
-  { value: 'ayurvedic', label: 'Ayurvedic', Icon: FaLeaf },
-  { value: 'supplement', label: 'Supplement', Icon: GiHealthCapsule },
-  { value: 'equipment', label: 'Equipment', Icon: GiStethoscope },
-  { value: 'other', label: 'Other', Icon: FiPackage },
-];
+import { getPublicProducts, getCategories } from '../../api/products';
+import { FiSearch, FiFilter, FiShoppingCart, FiTag, FiInfo, FiArrowRight } from 'react-icons/fi';
+import { FaWhatsapp, FaBox, FaRupeeSign } from 'react-icons/fa';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState('');
-  const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [enquiryModal, setEnquiryModal] = useState(null);
-  const [enquiryForm, setEnquiryForm] = useState({ enquirer_name: '', enquirer_phone: '', message: '' });
-  const [enquirySent, setEnquirySent] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [filters, setFilters] = useState({ category: 'Ayurvedic Products', search: '' });
 
   useEffect(() => {
     setLoading(true);
-    getPublicProducts({ category: category || undefined, search: search || undefined })
-      .then(({ data }) => setProducts(data.results || data))
+    Promise.all([getPublicProducts(filters), getCategories()])
+      .then(([prodRes, catRes]) => {
+        setProducts(prodRes.data.results || prodRes.data);
+        setCategories(catRes.data.results || catRes.data);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [category, search]);
+  }, [filters]);
 
-  const handleEnquiry = async (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    try {
-      await submitEnquiry({ ...enquiryForm, product: enquiryModal.id });
-      setEnquirySent(true);
-    } catch (err) {
-      alert('Failed to submit enquiry. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
+    // Filters update will trigger useEffect
   };
 
   return (
     <div style={{ background: 'var(--parchment)' }}>
       <PublicNavbar />
-      <div style={{ paddingTop: 72, minHeight: 'calc(100vh - 120px)' }}>
-        {/* Header */}
-        <section className="section" style={{ paddingBottom: 40 }}>
-          <div className="container">
-            <div className="section-header centered">
-              <div className="section-tag">Products</div>
-              <h2 className="section-title">Medicines &amp; <span>Healthcare Products</span></h2>
-              <p className="section-desc">Browse our range of medicines, Ayurvedic products, and health supplements. Click WhatsApp to enquire.</p>
-            </div>
-
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginTop: 32 }}>
-              <div style={{ position: 'relative', maxWidth: 300, width: '100%' }}>
-                <FiSearch size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                <input
-                  className="input"
-                  placeholder="Search products..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ paddingLeft: 40, width: '100%', background: 'var(--linen)', border: '1px solid var(--border-gold)' }}
-                />
-              </div>
-              <select className="input" value={category} onChange={e => setCategory(e.target.value)} style={{ maxWidth: 200, width: '100%', background: 'var(--linen)', border: '1px solid var(--border-gold)' }}>
-                {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
+      <div style={{ paddingTop: 72 }}>
+        {/* Banner */}
+        <div className="page-banner" style={{ background: 'linear-gradient(135deg, #1e3a1a 0%, #2d5a27 100%)' }}>
+          <div className="container" style={{ textAlign: 'center' }}>
+            <div className="section-tag" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}>Health Store</div>
+            <h1 style={{ color: '#fff', marginTop: 16, fontFamily: '"Cormorant Garamond", serif' }}>Essential Health Products</h1>
+            <p style={{ color: 'rgba(255,255,255,0.8)', maxWidth: 500, margin: '16px auto 0' }}>
+              Carefully curated Ayurvedic products for your recovery.
+            </p>
           </div>
-        </section>
+        </div>
 
-        {/* Product Grid */}
-        <section style={{ paddingBottom: 80 }}>
+        <section className="section">
           <div className="container">
+            {/* Toolbar */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: 40, gap: 20, flexWrap: 'wrap',
+              background: '#fff', padding: 20, borderRadius: 16, boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-gold)'
+            }}>
+              <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10, flex: 1 }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <FiSearch style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    className="input"
+                    placeholder="Search products..."
+                    style={{ paddingLeft: 40, background: 'var(--parchment)' }}
+                    value={filters.search}
+                    onChange={e => setFilters(p => ({ ...p, search: e.target.value }))}
+                  />
+                </div>
+              </form>
+
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <FiFilter color="var(--moss)" />
+                <select
+                  className="input"
+                  style={{ width: 200, background: 'var(--parchment)' }}
+                  value={filters.category}
+                  onChange={e => setFilters(p => ({ ...p, category: e.target.value }))}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {loading ? (
-              <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto', borderColor: 'var(--moss) transparent transparent transparent' }} /></div>
+              <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                <div className="spinner" style={{ margin: '0 auto' }} />
+                <p style={{ marginTop: 20, color: 'var(--text-muted)' }}>Loading products...</p>
+              </div>
             ) : products.length === 0 ? (
-              <div className="empty-state" style={{ background: 'var(--linen)', border: '1px solid var(--border-gold)' }}>
-                <div className="icon" style={{ background: 'transparent' }}><FiPackage size={40} color="var(--clay)" /></div>
-                <p style={{ color: 'var(--bark)' }}>No products found.</p>
+              <div style={{ textAlign: 'center', padding: '100px 0', background: '#fff', borderRadius: 20, border: '1px solid var(--border-gold)' }}>
+                <div style={{ fontSize: '4rem', marginBottom: 20, color: 'var(--primary)' }}><FaBox /></div>
+                <h3>No products found</h3>
+                <p>Try adjusting your search or category filter.</p>
+                <button className="btn btn-ghost" onClick={() => setFilters({ category: '', search: '' })} style={{ marginTop: 20 }}>Clear All Filters</button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 24 }}>
-                {products.map(p => {
-                  const CategoryIcon = categories.find(c => c.value === p.category)?.Icon || FiPackage;
-                  return (
-                    <div key={p.id} className="card" style={{ overflow: 'hidden', background: 'var(--linen)', border: '1px solid var(--border-gold)', boxShadow: 'var(--shadow-sm)' }}>
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: '100%', height: 140, background: 'var(--parchment)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--border-gold)' }}>
-                          <FiPackage size={48} color="rgba(200,144,48,0.25)" />
-                        </div>
-                      )}
-                      <div className="card-body">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                          <h3 style={{ fontSize: '1rem', lineHeight: 1.3, color: 'var(--bark)', fontFamily: '"Cormorant Garamond", serif' }}>{p.name}</h3>
-                          <span className="badge" style={{ background: 'var(--secondary-bg)', color: 'var(--bark)', border: '1px solid var(--border-gold)', marginLeft: 8, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <CategoryIcon size={10} color="var(--clay)" /> {p.category}
-                          </span>
-                        </div>
-                        {p.description && <p style={{ fontSize: '0.85rem', marginBottom: 12, color: 'var(--bark-mid)', WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</p>}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                          <span style={{ fontFamily: '"Cormorant Garamond", serif', fontWeight: 700, fontSize: '1.3rem', color: 'var(--moss)' }}>₹{p.price}</span>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <a href={p.whatsapp_link} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ background: '#25D366', color: '#fff', border: 'none', gap: 6 }}>
-                              <FaWhatsapp size={14} /> WhatsApp
-                            </a>
-                            <button className="btn btn-primary btn-sm" onClick={() => { setEnquiryModal(p); setEnquirySent(false); setEnquiryForm({ enquirer_name: '', enquirer_phone: '', message: '' }); }}>
-                              Enquire
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="product-grid mobile-2-col" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 30 }}>
+                {products.map(p => (
+                   <ProductCard key={p.id} product={p} />
+                ))}
               </div>
             )}
           </div>
         </section>
       </div>
-
-      {/* Enquiry Modal */}
-      {enquiryModal && (
-        <div className="modal-overlay" onClick={() => setEnquiryModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--linen)', border: '1px solid var(--border-gold)' }}>
-            <div className="modal-header" style={{ borderBottom: '1px solid var(--border-gold)' }}>
-              <h3 style={{ fontFamily: '"Cormorant Garamond", serif', color: 'var(--bark)' }}>Enquire: {enquiryModal.name}</h3>
-              <button className="modal-close" onClick={() => setEnquiryModal(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              {enquirySent ? (
-                <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FiCheckCircle size={16} /> Enquiry submitted! Our team will contact you shortly.
-                </div>
-              ) : (
-                <form onSubmit={handleEnquiry} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div className="form-group">
-                    <label className="form-label">Your Name *</label>
-                    <input className="input" required value={enquiryForm.enquirer_name} onChange={e => setEnquiryForm(p => ({ ...p, enquirer_name: e.target.value }))} placeholder="Full name" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number *</label>
-                    <input className="input" required value={enquiryForm.enquirer_phone} onChange={e => setEnquiryForm(p => ({ ...p, enquirer_phone: e.target.value }))} placeholder="+91 XXXXX XXXXX" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Message</label>
-                    <textarea className="input" value={enquiryForm.message} onChange={e => setEnquiryForm(p => ({ ...p, message: e.target.value }))} placeholder="Any specific questions?" rows={3} />
-                  </div>
-                  <div className="modal-footer" style={{ padding: 0, border: 'none', marginTop: 8 }}>
-                    <button type="button" className="btn btn-ghost" onClick={() => setEnquiryModal(null)}>Cancel</button>
-                    <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Sending...' : 'Send Enquiry'}</button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       <PublicFooter />
+    </div>
+  );
+}
+
+function ProductCard({ product }) {
+  const hasDiscount = product.discount_percentage > 0 || (product.category && product.category.discount_percentage > 0);
+
+  return (
+    <div className="product-card" style={{
+      background: '#fff', borderRadius: 20, overflow: 'hidden',
+      border: '1px solid var(--border-gold)', boxShadow: 'var(--shadow-sm)',
+      display: 'flex', flexDirection: 'column', height: '100%',
+      transition: 'all 0.3s ease'
+    }}>
+      <div style={{ position: 'relative', paddingTop: '100%', background: 'var(--parchment)' }}>
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            <FiTag size={40} opacity={0.2} />
+          </div>
+        )}
+
+        {hasDiscount && (
+          <div style={{
+            position: 'absolute', top: 12, left: 12,
+            background: 'var(--clay)', color: '#fff',
+            padding: '4px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700
+          }}>
+            OFFER
+          </div>
+        )}
+
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          background: 'rgba(255,255,255,0.9)',
+          padding: '4px 8px', borderRadius: 8, fontSize: '0.7rem',
+          fontWeight: 600, color: 'var(--moss)', border: '1px solid var(--border-gold)'
+        }}>
+          {product.category_name || 'Health'}
+        </div>
+      </div>
+
+      <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{ fontSize: '1.2rem', marginBottom: 8, fontFamily: '"Cormorant Garamond", serif', color: 'var(--navy)' }}>{product.name}</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {product.description || 'Quality healthcare product for your well-being.'}
+        </p>
+
+        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FaRupeeSign size={14} />{product.final_price}
+          </div>
+          {product.final_price < product.price && (
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textDecoration: 'line-through', display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FaRupeeSign size={11} />{product.price}
+            </div>
+          )}
+        </div>
+
+        <div className="product-actions" style={{ display: 'flex', gap: 10 }}>
+          <Link to={`/products/${product.id}`} className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+            <FiInfo size={16} /> Details
+          </Link>
+          <a
+            href={product.whatsapp_link}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-whatsapp"
+            style={{ flex: 1.2, justifyContent: 'center' }}
+          >
+            <FaWhatsapp size={16} /> Enquire
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

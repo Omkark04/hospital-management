@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPatient } from '../../../api/patients';
-import { getBranches } from '../../../api/branches';
+import { createPatient, getDepartments, getTreatments } from '../../../api/patients';
+
 import { useAuth } from '../../../context/AuthContext';
 
 const INITIAL = {
@@ -9,28 +9,40 @@ const INITIAL = {
   gender: 'other', blood_group: 'unknown', dob: '',
   address: '', emergency_contact_name: '', emergency_contact_phone: '',
   medical_history: '', allergies: '', chronic_conditions: '', branch: '',
+  primary_department: '', interested_treatment: '', prakriti: 'unknown', chief_complaint: ''
 };
 
 export default function PatientRegister() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ ...INITIAL, branch: user?.branch_id || '' });
-  const [branches, setBranches] = useState([]);
+
+  const [departments, setDepartments] = useState([]);
+  const [treatments, setTreatments] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    getBranches().then(({ data }) => setBranches(data.results || data)).catch(() => {});
+
+    getDepartments().then(({ data }) => setDepartments(data.results || data)).catch(() => console.warn('Run migrations for departments'));
   }, []);
+
+  useEffect(() => {
+    if (form.primary_department) {
+      getTreatments(form.primary_department).then(({ data }) => setTreatments(data.results || data)).catch(() => {});
+    } else {
+      setTreatments([]);
+    }
+  }, [form.primary_department]);
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!form.first_name || !form.phone || !form.branch) {
-      setError('First name, phone, and branch are required.');
+    if (!form.first_name || !form.phone) {
+      setError('First name and phone are required.');
       return;
     }
     setSaving(true);
@@ -114,13 +126,7 @@ export default function PatientRegister() {
               { value: 'B+', label: 'B+' }, { value: 'B-', label: 'B-' }, { value: 'AB+', label: 'AB+' },
               { value: 'AB-', label: 'AB-' }, { value: 'O+', label: 'O+' }, { value: 'O-', label: 'O-' },
             ]} />
-            <div className="form-group">
-              <label className="form-label">Branch *</label>
-              <select className="input" name="branch" value={form.branch} onChange={handleChange} required>
-                <option value="">Select Branch</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
+
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Address</label>
               <input className="input" name="address" value={form.address} onChange={handleChange} />
@@ -128,7 +134,39 @@ export default function PatientRegister() {
           </div>
         </div>
 
-        {/* Section 2: Emergency Contact */}
+        {/* Section 2: Ayurvedic & Clinical Assessment */}
+        <div className="card card-body" style={{ marginBottom: 20 }}>
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🌿 Ayurvedic & Clinical Profile</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Primary Department</label>
+              <select className="input" name="primary_department" value={form.primary_department} onChange={handleChange}>
+                <option value="">Select Department</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Interested Treatment</label>
+              <select className="input" name="interested_treatment" value={form.interested_treatment} onChange={handleChange} disabled={!form.primary_department || treatments.length === 0}>
+                <option value="">Select Treatment</option>
+                {treatments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <Field label="Prakriti (Constitution)" name="prakriti" options={[
+              { value: 'unknown', label: 'Unknown / Not Assessed' },
+              { value: 'vata', label: 'Vata' },
+              { value: 'pitta', label: 'Pitta' },
+              { value: 'kapha', label: 'Kapha' },
+              { value: 'vata_pitta', label: 'Vata-Pitta' },
+              { value: 'pitta_kapha', label: 'Pitta-Kapha' },
+              { value: 'vata_kapha', label: 'Vata-Kapha' },
+              { value: 'tridosha', label: 'Tridosha' },
+            ]} />
+            <Field label="Chief Complaint" name="chief_complaint" type="textarea" span={true} />
+          </div>
+        </div>
+
+        {/* Section 3: Emergency Contact */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
           <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🆘 Emergency Contact</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

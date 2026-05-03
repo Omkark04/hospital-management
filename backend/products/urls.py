@@ -1,7 +1,9 @@
 from django.urls import path
 from .views import (
     PublicProductListView, PublicProductDetailView,
+    PrescriptionProductListView,
     ProductListCreateView, ProductDetailView,
+    ProductCategoryListCreateView, ProductCategoryDetailView,
     ProductEnquiryCreateView, ProductEnquiryListView, EnquiryStatusUpdateView,
 )
 
@@ -11,6 +13,9 @@ urlpatterns = [
     # Public
     path('public/', PublicProductListView.as_view(), name='public-product-list'),
     path('public/<int:pk>/', PublicProductDetailView.as_view(), name='public-product-detail'),
+    path('prescription-products/', PrescriptionProductListView.as_view(), name='prescription-product-list'),
+    path('categories/', ProductCategoryListCreateView.as_view(), name='category-list-create'),
+    path('categories/<int:pk>/', ProductCategoryDetailView.as_view(), name='category-detail'),
     path('enquiry/', ProductEnquiryCreateView.as_view(), name='enquiry-create'),
 
     # Owner

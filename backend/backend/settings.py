@@ -1,20 +1,25 @@
 """
 Django settings for HMS (Hospital Management System).
-Reads all secrets from backend/.env via python-decouple.
+Reads all secrets from backend/.env via python-dotenv.
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config, Csv
+from dotenv import load_dotenv
 import dj_database_url
 
 # ─────────────────────────── Paths ────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ── Explicit Environment Loading
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
+
 # ─────────────────────────── Security ─────────────────────────
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+SECRET_KEY = os.getenv('SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # ─────────────────────────── Applications ─────────────────────
 INSTALLED_APPS = [
@@ -86,7 +91,7 @@ DATABASES = {
 }
 
 # If DATABASE_URL is defined in .env (like Railway Postgres URL), override default DB to Postgres
-DATABASE_URL = config('DATABASE_URL', default='')
+DATABASE_URL = os.getenv('DATABASE_URL', '')
 if DATABASE_URL:
     DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 
@@ -126,10 +131,10 @@ REST_FRAMEWORK = {
 # ─────────────────────────── Simple JWT ───────────────────────
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(
-        minutes=config('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', default=60, cast=int)
+        minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 60))
     ),
     'REFRESH_TOKEN_LIFETIME': timedelta(
-        days=config('JWT_REFRESH_TOKEN_LIFETIME_DAYS', default=7, cast=int)
+        days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))
     ),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -139,31 +144,40 @@ SIMPLE_JWT = {
 }
 
 # ─────────────────────────── CORS ─────────────────────────────
-CORS_ALLOWED_ORIGINS = config(
+CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173',
-    cast=Csv()
-)
+    'http://localhost:5173'
+).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # ─────────────────────────── SendGrid ─────────────────────────
-SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@yourhospital.com')
-DEFAULT_FROM_NAME = config('DEFAULT_FROM_NAME', default='Hospital Management System')
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@yourhospital.com')
+DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'Hospital Management System')
+
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'apikey'  # This must always literally be the string "apikey" according to SendGrid instructions
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # ─────────────────────────── Cloudinary (stub) ────────────────
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
-    'API_KEY': config('CLOUDINARY_API_KEY', default=''),
-    'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
 }
 
 # ─────────────────────────── Dropbox (stub) ───────────────────
 DROPBOX_CONFIG = {
-    'APP_KEY': config('DROPBOX_APP_KEY', default=''),
-    'APP_SECRET': config('DROPBOX_APP_SECRET', default=''),
-    'REFRESH_TOKEN': config('DROPBOX_REFRESH_TOKEN', default=''),
+    'APP_KEY': os.getenv('DROPBOX_APP_KEY', ''),
+    'APP_SECRET': os.getenv('DROPBOX_APP_SECRET', ''),
+    'REFRESH_TOKEN': os.getenv('DROPBOX_REFRESH_TOKEN', ''),
 }
 
 # ─────────────────────────── WhatsApp ─────────────────────────
-WHATSAPP_ENQUIRY_NUMBER = config('WHATSAPP_ENQUIRY_NUMBER', default='')
+WHATSAPP_ENQUIRY_NUMBER = os.getenv('WHATSAPP_ENQUIRY_NUMBER', '')

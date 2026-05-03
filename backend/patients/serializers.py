@@ -1,18 +1,34 @@
 from rest_framework import serializers
-from .models import Patient, Appointment, VisitNote, LabReport
+from .models import Patient, Appointment, VisitNote, LabReport, Department, Treatment
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = '__all__'
+
+class TreatmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Treatment
+        fields = '__all__'
+
 
 
 class PatientListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     registered_by_name = serializers.CharField(source='registered_by.get_full_name', read_only=True)
+    primary_department_name = serializers.CharField(source='primary_department.name', read_only=True)
+    interested_treatment_name = serializers.CharField(source='interested_treatment.name', read_only=True)
 
     class Meta:
         model = Patient
         fields = (
             'id', 'uhid', 'full_name', 'first_name', 'last_name', 'phone',
             'email', 'gender', 'blood_group', 'dob', 'branch', 'branch_name',
-            'registered_by_name', 'is_active', 'created_at'
+            'registered_by_name', 'is_active', 'created_at',
+            'primary_department', 'primary_department_name',
+            'interested_treatment', 'interested_treatment_name',
+            'prakriti', 'chief_complaint'
         )
         read_only_fields = ('id', 'uhid', 'created_at')
 
@@ -23,6 +39,8 @@ class PatientListSerializer(serializers.ModelSerializer):
 class PatientDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     branch_name = serializers.CharField(source='branch.name', read_only=True)
+    primary_department_name = serializers.CharField(source='primary_department.name', read_only=True)
+    interested_treatment_name = serializers.CharField(source='interested_treatment.name', read_only=True)
 
     class Meta:
         model = Patient
@@ -73,5 +91,13 @@ class LabReportSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LabReport
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')
+
+from .models import Review
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
         fields = '__all__'
         read_only_fields = ('id', 'created_at')
