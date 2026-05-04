@@ -3,13 +3,14 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../../assets/Logo.png';
 import {
-  FiPhone, FiMenu, FiX, FiCalendar, FiGrid, FiChevronDown
+  FiPhone, FiMenu, FiX, FiCalendar, FiGrid, FiChevronDown, FiUsers
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function PublicNavbar() {
   const { isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
@@ -97,6 +98,9 @@ export default function PublicNavbar() {
 
         {/* Actions */}
         <div className="public-nav-actions">
+          <Link to="/referral" className="btn btn-secondary nav-action-btn" style={{ gap: 6 }}>
+            <FiUsers size={15} /> Refer Patient
+          </Link>
           {isAuthenticated ? (
             <button className="btn btn-primary nav-action-btn" onClick={() => navigate('/dashboard')}>
               <FiGrid size={18} /> Dashboard
@@ -121,12 +125,23 @@ export default function PublicNavbar() {
           <div className="mobile-menu" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 80px)' }}>
             {links.map(l => (
               <div key={l.to}>
-                <NavLink to={l.to} end={l.to === '/'}
-                  className={({ isActive }) => `mobile-link ${isActive ? 'active' : ''}`}
-                  onClick={() => !l.isDropdown && setMobileOpen(false)}>
-                  {l.label}
-                </NavLink>
-                {l.isDropdown && (
+                {l.isDropdown ? (
+                  <div
+                    className={`mobile-link`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                    onClick={() => setMobileServicesOpen(p => !p)}
+                  >
+                    {l.label}
+                    <FiChevronDown size={16} style={{ transition: 'transform 0.3s ease', transform: mobileServicesOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                  </div>
+                ) : (
+                  <NavLink to={l.to} end={l.to === '/'}
+                    className={({ isActive }) => `mobile-link ${isActive ? 'active' : ''}`}
+                    onClick={() => setMobileOpen(false)}>
+                    {l.label}
+                  </NavLink>
+                )}
+                {l.isDropdown && mobileServicesOpen && (
                   <div style={{ background: 'rgba(0,0,0,0.03)', paddingLeft: 20 }}>
                     {megaMenuData.slice(0, 3).map((section, idx) => (
                       <div key={idx} style={{ padding: '8px 24px' }}>
@@ -149,6 +164,9 @@ export default function PublicNavbar() {
               </div>
             ))}
             <div style={{ padding: '20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Link to="/referral" className="btn btn-secondary" style={{ justifyContent: 'center', gap: 6 }} onClick={() => setMobileOpen(false)}>
+                <FiUsers size={15} /> Refer a Patient
+              </Link>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <a href="tel:+919763331118" className="btn btn-ghost" style={{ justifyContent: 'center', fontSize: '0.9rem', padding: '10px' }}>
                   <FiPhone size={14} /> Call

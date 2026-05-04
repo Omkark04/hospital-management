@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 # ─────────────────────────── Middleware ───────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',      # Static files in production
     'corsheaders.middleware.CorsMiddleware',          # CORS — must be before CommonMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -114,6 +115,8 @@ USE_TZ = True
 
 # ─────────────────────────── Static files ─────────────────────
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─────────────────────────── Django REST Framework ────────────
@@ -149,6 +152,12 @@ CORS_ALLOWED_ORIGINS = os.getenv(
     'http://localhost:5173'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
+
+# ─────────────────────────── CSRF Trusted Origins ─────────────
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173'
+).split(',')
 
 # ─────────────────────────── SendGrid ─────────────────────────
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
