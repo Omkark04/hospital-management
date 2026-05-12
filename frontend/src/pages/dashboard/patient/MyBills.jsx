@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getMyBills } from '../../../api/billing';
+import { FaFileInvoiceDollar, FaCheckCircle, FaHourglassHalf, FaCalendarAlt, FaCreditCard } from 'react-icons/fa';
 
 const STATUS_COLORS = { pending: 'danger', partial: 'warning', paid: 'success', cancelled: 'secondary' };
 
@@ -33,17 +34,17 @@ export default function MyBills() {
       {/* Summary */}
       <div className="stats-grid" style={{ marginBottom: 28 }}>
         <div className="stat-card cyan">
-          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}>🧾</div>
+          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}><FaFileInvoiceDollar /></div>
           <div className="stat-label">Total Bills</div>
           <div className="stat-value">{bills.length}</div>
         </div>
         <div className="stat-card green">
-          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}>✅</div>
+          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}><FaCheckCircle /></div>
           <div className="stat-label">Amount Paid</div>
           <div className="stat-value">₹{totalPaid.toFixed(0)}</div>
         </div>
         <div className="stat-card red">
-          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}>⏳</div>
+          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}><FaHourglassHalf /></div>
           <div className="stat-label">Amount Due</div>
           <div className="stat-value">₹{totalDue.toFixed(0)}</div>
         </div>
@@ -53,7 +54,7 @@ export default function MyBills() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
       ) : bills.length === 0 ? (
-        <div className="empty-state card card-body"><div className="icon">🧾</div><p>No bills found.</p></div>
+        <div className="empty-state card card-body"><div className="icon"><FaFileInvoiceDollar /></div><p>No bills found.</p></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {bills.map(b => (
@@ -70,7 +71,7 @@ export default function MyBills() {
                     <span className={`badge badge-${STATUS_COLORS[b.payment_status]}`}>{b.payment_status}</span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    📅 {b.created_at?.split('T')[0]} · 💳 {b.payment_method}
+                    <FaCalendarAlt /> {b.created_at?.split('T')[0]} · <FaCreditCard /> {b.payment_method}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>

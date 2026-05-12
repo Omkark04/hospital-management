@@ -12,14 +12,14 @@ export default function ReviewManage() {
 
   const fetchReviews = () => {
     setLoading(true);
-    api.get('/patients/admin/reviews/')
-      .then(res => setReviews(res.data))
+    api.get('/patients/reviews/admin/')
+      .then(res => setReviews(res.data.results || res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   };
 
   const updateStatus = (id, newStatus) => {
-    api.patch(`/patients/admin/reviews/${id}/`, { status: newStatus })
+    api.patch(`/patients/reviews/admin/${id}/`, { status: newStatus })
       .then(() => {
         setReviews(reviews.map(r => r.id === id ? { ...r, status: newStatus } : r));
       })
@@ -28,7 +28,7 @@ export default function ReviewManage() {
 
   const deleteReview = (id) => {
     if (window.confirm("Are you sure you want to delete this review?")) {
-      api.delete(`/patients/admin/reviews/${id}/`)
+      api.delete(`/patients/reviews/admin/${id}/`)
         .then(() => {
           setReviews(reviews.filter(r => r.id !== id));
         })

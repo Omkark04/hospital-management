@@ -48,6 +48,10 @@ class BillDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         return branch_qs(Bill.objects.all(), self.request.user)
 
+    def perform_update(self, serializer):
+        # Clear old PDF URL when bill is updated to force regeneration
+        serializer.save(pdf_url="")
+
 
 class PaymentUpdateView(APIView):
     """Quick endpoint to update payment amount only (Receptionist workflow)."""
@@ -61,6 +65,12 @@ class PaymentUpdateView(APIView):
         serializer = PaymentUpdateSerializer(bill, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        
+        # If the bill is now paid, clear the old PDF URL to force regeneration
+        if bill.payment_status == 'paid':
+            bill.pdf_url = ""
+            bill.save()
+            
         return Response(BillSerializer(bill).data)
 
 

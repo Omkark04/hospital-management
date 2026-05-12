@@ -202,8 +202,8 @@ export default function About() {
                     {v.title}
                   </h4>
                   <p style={{ 
-                    fontSize: '0.9rem', 
-                    lineHeight: 1.6, 
+                    fontSize: '1.05rem', 
+                    lineHeight: 1.65, 
                     color: 'var(--text-secondary)',
                     margin: '0 auto'
                   }}>
@@ -239,7 +239,7 @@ export default function About() {
           <div className="container">
             <FaSpa size={40} color="var(--clay)" style={{ marginBottom: 16 }} />
             <h2 style={{ marginBottom: 12, fontFamily: '"Cormorant Garamond", serif' }}>Ready to Experience the Difference?</h2>
-            <p style={{ marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>Come visit us and let Dr. Wagh create a personalised treatment plan for you.</p>
+            <p style={{ marginBottom: 32, maxWidth: 480, margin: '0 auto 32px', fontSize: '1.05rem', lineHeight: 1.65 }}>Come visit us and let Dr. Wagh create a personalised treatment plan for you.</p>
             <Link to="/contact" className="btn btn-primary btn-lg" style={{ gap: 8 }}>
               <FiCalendar size={16} /> Book an Appointment Today
             </Link>

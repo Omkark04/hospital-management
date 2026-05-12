@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getPatients } from '../../../api/patients';
 import { getEmployees, getLeaves } from '../../../api/hr';
 import { getCampaigns } from '../../../api/campaigns';
-import { getBranches } from '../../../api/branches';
+import { getBranches, getBranchStats } from '../../../api/branches';
 import { getBills } from '../../../api/billing';
 import { getEnquiries } from '../../../api/products';
 import { getReferrals } from '../../../api/referrals';
@@ -13,6 +13,7 @@ import {
   FaUserCircle, FaLink, FaBell, FaChartLine, FaBolt, FaPlane, 
   FaCommentAlt, FaCrown, FaMoneyBillWave 
 } from 'react-icons/fa';
+import BranchDetailModal from './BranchDetailModal';
 
 function StatCard({ icon, label, value, color, link, badge }) {
   return (
@@ -33,6 +34,8 @@ export default function OwnerDashboard() {
   const [stats, setStats] = useState({ patients: null, employees: null, campaigns: null, branches: null });
   const [finances, setFinances] = useState({ totalRevenue: 0, pendingDues: 0 });
   const [focus, setFocus] = useState({ leaves: 0, enquiries: 0, referrals: 0 });
+  const [branchStats, setBranchStats] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState(null);
 
   useEffect(() => {
     // 1. Stats
@@ -71,6 +74,9 @@ export default function OwnerDashboard() {
           referrals: refs.filter(x => x.status === 'new' || x.status === 'pending').length,
         });
       });
+
+    // 4. Branch Stats
+    getBranchStats().then(res => setBranchStats(res.data)).catch(() => {});
   }, []);
 
   return (
@@ -181,6 +187,31 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Branch Performance Section */}
+      <div style={{ marginTop: 36 }}>
+        <h3 style={{ marginBottom: 20, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FaBuilding /> Branch Performance Overview
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {branchStats.map(branch => (
+            <div key={branch.id} className="card card-body" style={{ background: 'var(--bg)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setSelectedBranch(branch)}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h4 style={{ margin: 0 }}>{branch.name}</h4>
+                <span style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>View Details →</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                <span>Patients: <strong>{branch.patients}</strong></span>
+                <span>Revenue: <strong style={{ color: 'var(--moss)' }}>₹{branch.revenue.toLocaleString()}</strong></span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {selectedBranch && (
+        <BranchDetailModal branch={selectedBranch} onClose={() => setSelectedBranch(null)} />
+      )}
     </div>
   );
 }

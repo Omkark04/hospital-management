@@ -62,7 +62,7 @@ export default function ReceptionistDashboard() {
         <StatCard icon={<FaEdit />} label="Pending Leaves" value={stats.pendingLeaves} color="red" link="/dashboard/leaves" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="dashboard-panels">
         {/* Quick actions */}
         <div className="card card-body">
           <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 8 }}>

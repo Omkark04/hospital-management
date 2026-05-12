@@ -24,7 +24,7 @@ export default function PublicNavbar() {
     { to: '/', label: 'Home' },
     { to: '/services', label: 'Services', isDropdown: true },
     { to: '/about', label: 'About Us' },
-    { to: '/gallery', label: 'Gallery' },
+    { to: '/products', label: 'Products' },
     { to: '/testimonials', label: 'Testimonials' },
     { to: '/contact', label: 'Contact' },
   ];
@@ -167,7 +167,7 @@ export default function PublicNavbar() {
               <Link to="/referral" className="btn btn-secondary" style={{ justifyContent: 'center', gap: 6 }} onClick={() => setMobileOpen(false)}>
                 <FiUsers size={15} /> Refer a Patient
               </Link>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
                 <a href="tel:+919763331118" className="btn btn-ghost" style={{ justifyContent: 'center', fontSize: '0.9rem', padding: '10px' }}>
                   <FiPhone size={14} /> Call
                 </a>

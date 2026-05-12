@@ -4,9 +4,13 @@ import {
   getCategories, createCategory 
 } from '../../../api/products';
 import { FiPlus, FiTag, FiImage, FiPercent, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FaBoxOpen } from 'react-icons/fa';
 import ImageUpload from '../../../components/dashboard/ImageUpload';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function ProductManage() {
+  const { user } = useAuth();
+  const isOwner = user?.role === 'owner';
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,9 +126,11 @@ export default function ProductManage() {
           <p>Manage products, categories, and discounts for the public website.</p>
         </div>
         <div className="page-actions" style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)}>
-            <FiTag /> Add Category
-          </button>
+          {isOwner && (
+            <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)}>
+              <FiTag /> Add Category
+            </button>
+          )}
           <button className="btn btn-primary" onClick={() => openProductModal()}>
             <FiPlus /> Add Product
           </button>
@@ -136,7 +142,7 @@ export default function ProductManage() {
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : products.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">📦</div>
+            <div className="icon"><FaBoxOpen /></div>
             <p>No products listed yet.</p>
             <button className="btn btn-primary" onClick={() => openProductModal()} style={{ marginTop: 15 }}>Add Your First Product</button>
           </div>
@@ -228,10 +234,12 @@ export default function ProductManage() {
                       </div>
                     </div>
                   </div>
-                  <ImageUpload 
-                    currentImage={productForm.image_url} 
-                    onUploadSuccess={(url) => setProductForm(p => ({ ...p, image_url: url }))} 
-                  />
+                  {isOwner && (
+                    <ImageUpload 
+                      currentImage={productForm.image_url} 
+                      onUploadSuccess={(url) => setProductForm(p => ({ ...p, image_url: url }))} 
+                    />
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
@@ -299,14 +307,18 @@ export default function ProductManage() {
                     <input type="checkbox" id="is_active" checked={productForm.is_active} onChange={e => setProductForm(p => ({ ...p, is_active: e.target.checked }))} style={{ width: 18, height: 18 }} />
                     <label htmlFor="is_active" style={{ fontSize: '0.9rem' }}>Active</label>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" id="for_public" checked={productForm.for_public} onChange={e => setProductForm(p => ({ ...p, for_public: e.target.checked }))} style={{ width: 18, height: 18 }} />
-                    <label htmlFor="for_public" style={{ fontSize: '0.9rem' }}>For Public (Store)</label>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" id="for_patients" checked={productForm.for_patients} onChange={e => setProductForm(p => ({ ...p, for_patients: e.target.checked }))} style={{ width: 18, height: 18 }} />
-                    <label htmlFor="for_patients" style={{ fontSize: '0.9rem' }}>For Patients (Prescription)</label>
-                  </div>
+                  {isOwner && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" id="for_public" checked={productForm.for_public} onChange={e => setProductForm(p => ({ ...p, for_public: e.target.checked }))} style={{ width: 18, height: 18 }} />
+                        <label htmlFor="for_public" style={{ fontSize: '0.9rem' }}>For Public (Store)</label>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" id="for_patients" checked={productForm.for_patients} onChange={e => setProductForm(p => ({ ...p, for_patients: e.target.checked }))} style={{ width: 18, height: 18 }} />
+                        <label htmlFor="for_patients" style={{ fontSize: '0.9rem' }}>For Patients (Prescription)</label>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="modal-footer" style={{ padding: 0, border: 'none', marginTop: 10 }}>

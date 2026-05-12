@@ -14,7 +14,7 @@ export default function SpineModel() {
     if (!groupRef.current) return;
     
     // Just a slow, continuous idle rotation
-    groupRef.current.rotation.y += delta * 0.2;
+    groupRef.current.rotation.y += delta * 0.6;
   });
 
   return (

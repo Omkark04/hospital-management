@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getLeaves, applyLeave, reviewLeave } from '../../../api/hr';
 import { useAuth } from '../../../context/AuthContext';
+import { FaFileAlt } from 'react-icons/fa';
 
 const STATUS_COLORS = { pending: 'warning', approved: 'success', rejected: 'danger' };
 const BADGE_TYPE = { sick: 'danger', casual: 'info', annual: 'success', other: 'secondary' };
@@ -12,7 +13,7 @@ export default function LeaveList() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [showModal, setShowModal] = useState(false);
   const [reviewModal, setReviewModal] = useState(null);
-  const [form, setForm] = useState({ leave_type: 'sick', from_date: '', to_date: '', reason: '' });
+  const [form, setForm] = useState({ leave_type: 'sick', from_date: '', to_date: '', reason: '', is_half_day: false });
   const [reviewForm, setReviewForm] = useState({ status: 'approved', review_notes: '' });
   const [saving, setSaving] = useState(false);
 
@@ -42,8 +43,8 @@ export default function LeaveList() {
     finally { setSaving(false); }
   };
 
-  const canReview = user?.role === 'owner' || user?.role === 'receptionist';
-  const canApply = user?.role === 'employee' || user?.role === 'doctor';
+  const canReview = user?.role === 'doctor';
+  const canApply  = ['doctor', 'receptionist', 'employee'].includes(user?.role);
 
   return (
     <div>
@@ -65,7 +66,7 @@ export default function LeaveList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : leaves.length === 0 ? (
-          <div className="empty-state"><div className="icon">📝</div><p>No leave applications.</p></div>
+          <div className="empty-state"><div className="icon"><FaFileAlt /></div><p>No leave applications.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -123,7 +124,7 @@ export default function LeaveList() {
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">From *</label>
                     <input type="date" className="input" required value={form.from_date} onChange={e => setForm(p => ({ ...p, from_date: e.target.value }))} />
@@ -132,6 +133,10 @@ export default function LeaveList() {
                     <label className="form-label">To *</label>
                     <input type="date" className="input" required value={form.to_date} onChange={e => setForm(p => ({ ...p, to_date: e.target.value }))} />
                   </div>
+                </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" id="halfDay" checked={form.is_half_day} onChange={e => setForm(p => ({ ...p, is_half_day: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                  <label htmlFor="halfDay" className="form-label" style={{ marginBottom: 0 }}>This is a Half-Day Leave</label>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Reason *</label>

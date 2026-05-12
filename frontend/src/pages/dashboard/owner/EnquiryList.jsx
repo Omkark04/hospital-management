@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getEnquiries, updateEnquiryStatus } from '../../../api/products';
+import { FaCommentDots } from 'react-icons/fa';
 
 const STATUS_COLORS = { new: 'info', responded: 'warning', closed: 'secondary' };
 
@@ -40,7 +41,7 @@ export default function EnquiryList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : enquiries.length === 0 ? (
-          <div className="empty-state"><div className="icon">💬</div><p>No enquiries found.</p></div>
+          <div className="empty-state"><div className="icon"><FaCommentDots /></div><p>No enquiries found.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>

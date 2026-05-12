@@ -6,6 +6,7 @@ import { getMedicines } from '../../../api/medicines';
 import { createPrescription } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
 import { useAuth } from '../../../context/AuthContext';
+import { FaPills } from 'react-icons/fa';
 
 export default function PrescriptionList() {
   const { user } = useAuth();
@@ -123,7 +124,7 @@ export default function PrescriptionList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : prescriptions.length === 0 ? (
-          <div className="empty-state card card-body"><div className="icon">💊</div><p>No prescriptions yet.</p></div>
+          <div className="empty-state card card-body"><div className="icon"><FaPills /></div><p>No prescriptions yet.</p></div>
         ) : (
           prescriptions.map(rx => (
             <div key={rx.id} className="card card-body" style={{ cursor: 'pointer' }} onClick={() => setSelected(selected?.id === rx.id ? null : rx)}>

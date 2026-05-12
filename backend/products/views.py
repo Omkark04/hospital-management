@@ -1,17 +1,26 @@
 from rest_framework import generics, status
+from django.db.models import F
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import IsOwner
+from users.permissions import IsOwner, IsOwnerOrDoctorOrReceptionist
+from users.models import UserRole
 from .models import Product, ProductCategory, ProductEnquiry
 from .serializers import (
     ProductSerializer, ProductPublicSerializer,
     ProductCategorySerializer,
-    ProductEnquirySerializer, EnquiryStatusUpdateSerializer
+    ProductEnquirySerializer, EnquiryStatusUpdateSerializer,
+    ProductStockLedgerSerializer
 )
 
 
+def get_owner(user):
+    if user.role == UserRole.OWNER:
+        return user
+    if hasattr(user, 'branch') and user.branch:
+        return user.branch.hospital.owner
+    return None
 
 # ─────────────────── Categories ──────────────────────────────
 class ProductCategoryListCreateView(generics.ListCreateAPIView):
@@ -64,27 +73,54 @@ class PrescriptionProductListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True, for_patients=True)
+        qs = Product.objects.filter(is_active=True, for_patients=True)
+        
+        # Allow filtering by branch from query params
+        branch_id = self.request.query_params.get('branch')
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+        elif self.request.user.role != UserRole.OWNER and hasattr(self.request.user, 'branch'):
+            qs = qs.filter(branch=self.request.user.branch)
+        return qs
 
 
 # ─────────────────── Owner Product Management ─────────────────
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
 
     def get_queryset(self):
-        return Product.objects.filter(owner=self.request.user)
+        owner = get_owner(self.request.user)
+        qs = Product.objects.filter(owner=owner)
+        
+        if self.request.user.role != UserRole.OWNER:
+            # Doctors/Receptionists only see their branch's non-public products
+            qs = qs.filter(branch=getattr(self.request.user, 'branch', None), for_public=False)
+        return qs
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
+        owner = get_owner(self.request.user)
+        if self.request.user.role != UserRole.OWNER:
+            serializer.save(
+                owner=owner, 
+                branch=getattr(self.request.user, 'branch', None),
+                for_public=False, 
+                for_patients=True
+            )
+        else:
+            serializer.save(owner=owner)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
 
     def get_queryset(self):
-        return Product.objects.filter(owner=self.request.user)
+        owner = get_owner(self.request.user)
+        qs = Product.objects.filter(owner=owner)
+        
+        if self.request.user.role != UserRole.OWNER:
+            qs = qs.filter(branch=getattr(self.request.user, 'branch', None), for_public=False)
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -127,3 +163,70 @@ class EnquiryStatusUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(ProductEnquirySerializer(enquiry).data)
+
+# ─────────────────── Inventory & Ledger ───────────────────
+class LowStockProductView(generics.ListAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def get_queryset(self):
+        owner = get_owner(self.request.user)
+        return Product.objects.filter(owner=owner, is_active=True, stock_quantity__lte=F('low_stock_threshold'))
+
+class ProductStockMovementView(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def post(self, request):
+        product_id = request.data.get('product_id')
+        quantity = int(request.data.get('quantity', 0))
+        movement_type = request.data.get('movement_type') # 'in', 'out', 'adjustment'
+        reference = request.data.get('reference', '')
+        notes = request.data.get('notes', '')
+
+        if quantity <= 0:
+            return Response({'detail': 'Quantity must be greater than zero.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            owner = get_owner(request.user)
+            product = Product.objects.get(id=product_id, owner=owner)
+        except Product.DoesNotExist:
+            return Response({'detail': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if movement_type == 'out' and product.stock_quantity < quantity:
+            return Response({'detail': 'Insufficient stock.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if movement_type == 'in':
+            product.stock_quantity += quantity
+        elif movement_type == 'out':
+            product.stock_quantity -= quantity
+        elif movement_type == 'adjustment':
+            product.stock_quantity = quantity
+            quantity = abs(product.stock_quantity - quantity) or quantity
+        
+        product.save()
+
+        from .models import ProductStockLedger
+        branch = getattr(request.user, 'branch', None)
+        ProductStockLedger.objects.create(
+            product=product,
+            branch=branch,
+            movement_type=movement_type,
+            quantity=quantity,
+            reference=reference,
+            notes=notes,
+            performed_by=request.user
+        )
+        return Response({'detail': 'Stock updated.', 'current_stock': product.stock_quantity})
+
+class ProductLedgerListView(generics.ListAPIView):
+    serializer_class = ProductStockLedgerSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def get_queryset(self):
+        from .models import ProductStockLedger
+        owner = get_owner(self.request.user)
+        qs = ProductStockLedger.objects.filter(product__owner=owner)
+        product_id = self.request.query_params.get('product')
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+        return qs

@@ -75,7 +75,7 @@ export default function Referral() {
                       <FiUserPlus size={18} color="var(--clay)" /> Patient Details
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">Patient Name *</label>
                           <input className="input" name="patient_name" required value={form.patient_name} onChange={handleChange} placeholder="Full name" />
@@ -85,7 +85,7 @@ export default function Referral() {
                           <input className="input" name="patient_phone" required value={form.patient_phone} onChange={handleChange} placeholder="+91 XXXXX XXXXX" />
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">Patient Email</label>
                           <input className="input" name="patient_email" type="email" value={form.patient_email} onChange={handleChange} placeholder="email@example.com" />
@@ -113,7 +113,7 @@ export default function Referral() {
                     <h4 style={{ color: 'var(--bark)', borderBottom: '1px solid var(--border-gold)', paddingBottom: 12, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontFamily: '"Cormorant Garamond", serif' }}>
                       <FiLink size={18} color="var(--clay)" /> Your Details (Referrer)
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="form-grid">
                       <div className="form-group">
                         <label className="form-label">Your Name</label>
                         <input className="input" name="referred_by_name" value={form.referred_by_name} onChange={handleChange} placeholder="Optional" />

@@ -103,7 +103,7 @@ export default function ProfilePage() {
 
         {editing ? (
           <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">First Name *</label>
                 <input className="input" required value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
@@ -127,7 +127,7 @@ export default function ProfilePage() {
             </div>
           </form>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid">
             {[
               ['Username', profile?.username],
               ['Email', profile?.email || '—'],
@@ -165,7 +165,7 @@ export default function ProfilePage() {
             <label className="form-label">Current Password *</label>
             <input type="password" className="input" required value={pwForm.old_password} onChange={e => setPwForm(p => ({ ...p, old_password: e.target.value }))} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid">
             <div className="form-group">
               <label className="form-label">New Password *</label>
               <input type="password" className="input" required minLength={8} value={pwForm.new_password} onChange={e => setPwForm(p => ({ ...p, new_password: e.target.value }))} />

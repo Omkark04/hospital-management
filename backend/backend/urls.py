@@ -43,4 +43,7 @@ urlpatterns = [
 
     # Notifications
     path('api/notifications/', include('notifications.urls', namespace='notifications')),
+
+    # Telecalling
+    path('api/telecalling/', include('telecalling.urls', namespace='telecalling')),
 ]

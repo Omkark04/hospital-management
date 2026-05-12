@@ -120,19 +120,6 @@
             font-weight: bold;
         }
 
-        .paid-watermark {
-            position: absolute;
-            top: 400px;
-            left: 50px;
-            width: 500px;
-            font-size: 120pt;
-            font-weight: bold;
-            color: #f6f6f6;
-            transform: rotate(-35deg);
-            z-index: -1;
-            text-align: center;
-        }
-
         #footer-content {
             font-size: 8pt;
             color: #666;
@@ -143,9 +130,6 @@
     </style>
 </head>
 <body>
-    {% if bill.payment_status == 'paid' %}
-    <div class="paid-watermark">PAID</div>
-    {% endif %}
 
     <table class="header-table">
         <tr>
@@ -233,6 +217,11 @@
                 <div style="font-size: 9pt; margin-top: 8px;">
                     <strong>Payment Mode:</strong> {{ bill.get_payment_mode_display|default:"Cash" }}
                 </div>
+                {% if bill.payment_status == 'paid' %}
+                <div style="font-size: 7pt; font-weight: bold; color: #2e7d32; margin-top: 2px;">
+                    PAID
+                </div>
+                {% endif %}
             </td>
             <td width="5%"></td>
             <td width="40%" valign="top">

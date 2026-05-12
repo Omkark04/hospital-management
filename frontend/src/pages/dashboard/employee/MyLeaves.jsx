@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getLeaves, applyLeave } from '../../../api/hr';
+import { FaFileAlt, FaCheckCircle, FaHourglassHalf, FaTimesCircle, FaBriefcaseMedical, FaSun, FaUmbrellaBeach, FaCalendarAlt } from 'react-icons/fa';
 
 const STATUS_COLORS = { pending: 'warning', approved: 'success', rejected: 'danger' };
-const TYPE_ICONS = { sick: '🤒', casual: '☀️', annual: '🏖️', other: '📋' };
+const TYPE_ICONS = { sick: <FaBriefcaseMedical />, casual: <FaSun />, annual: <FaUmbrellaBeach />, other: <FaFileAlt /> };
 
 export default function MyLeaves() {
   const [leaves, setLeaves] = useState([]);
@@ -32,7 +33,7 @@ export default function MyLeaves() {
     try {
       await applyLeave(form);
       setShowModal(false);
-      setSuccessMsg('✅ Leave application submitted successfully!');
+      setSuccessMsg('Leave application submitted successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
       fetchData();
     } catch (err) {
@@ -67,18 +68,18 @@ export default function MyLeaves() {
       {/* Summary */}
       <div className="stats-grid" style={{ marginBottom: 28 }}>
         <div className="stat-card green">
-          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}>✅</div>
+          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}><FaCheckCircle /></div>
           <div className="stat-label">Approved</div>
           <div className="stat-value">{approved}</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>{totalApprovedDays} total days</div>
         </div>
         <div className="stat-card orange">
-          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}>⏳</div>
+          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}><FaHourglassHalf /></div>
           <div className="stat-label">Pending</div>
           <div className="stat-value">{pending}</div>
         </div>
         <div className="stat-card red">
-          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}>❌</div>
+          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}><FaTimesCircle /></div>
           <div className="stat-label">Rejected</div>
           <div className="stat-value">{rejected}</div>
         </div>
@@ -89,7 +90,7 @@ export default function MyLeaves() {
         <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
       ) : leaves.length === 0 ? (
         <div className="empty-state card card-body">
-          <div className="icon">📝</div>
+          <div className="icon"><FaFileAlt /></div>
           <p>No leave applications yet.</p>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setShowModal(true)}>Apply for Leave</button>
         </div>
@@ -100,12 +101,12 @@ export default function MyLeaves() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                   <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
-                    {TYPE_ICONS[l.leave_type] || '📋'}
+                    {TYPE_ICONS[l.leave_type] || <FaFileAlt />}
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, marginBottom: 4, textTransform: 'capitalize' }}>{l.leave_type} Leave</div>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      📅 {l.from_date} → {l.to_date}  ·  <strong style={{ color: 'var(--primary)' }}>{l.total_days} day{l.total_days !== 1 ? 's' : ''}</strong>
+                      <FaCalendarAlt /> {l.from_date} → {l.to_date}  ·  <strong style={{ color: 'var(--primary)' }}>{l.total_days} day{l.total_days !== 1 ? 's' : ''}</strong>
                     </div>
                     {l.reason && <p style={{ fontSize: '0.85rem', marginTop: 6, maxWidth: 500 }}>{l.reason}</p>}
                   </div>
@@ -140,7 +141,7 @@ export default function MyLeaves() {
                 <div className="form-group">
                   <label className="form-label">Leave Type *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                    {[{ v: 'sick', l: '🤒 Sick' }, { v: 'casual', l: '☀️ Casual' }, { v: 'annual', l: '🏖️ Annual' }, { v: 'other', l: '📋 Other' }].map(opt => (
+                    {[{ v: 'sick', l: 'Sick' }, { v: 'casual', l: 'Casual' }, { v: 'annual', l: 'Annual' }, { v: 'other', l: 'Other' }].map(opt => (
                       <button
                         key={opt.v}
                         type="button"
@@ -153,7 +154,7 @@ export default function MyLeaves() {
                     ))}
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">From Date *</label>
                     <input
@@ -180,7 +181,7 @@ export default function MyLeaves() {
 
                 {form.from_date && form.to_date && form.to_date >= form.from_date && (
                   <div className="alert alert-info" style={{ padding: '8px 14px' }}>
-                    📅 Duration: <strong>
+                    <FaCalendarAlt /> Duration: <strong>
                       {Math.round((new Date(form.to_date) - new Date(form.from_date)) / (1000 * 60 * 60 * 24) + 1)} day(s)
                     </strong>
                   </div>
@@ -201,7 +202,7 @@ export default function MyLeaves() {
                 <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
                   <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? '⏳ Submitting...' : '✅ Submit Application'}
+                    {saving ? <><FaHourglassHalf /> Submitting...</> : <><FaCheckCircle /> Submit Application</>}
                   </button>
                 </div>
               </form>

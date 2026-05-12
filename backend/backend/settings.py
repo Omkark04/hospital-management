@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'products',
     'referrals',
     'notifications',
+    'telecalling',
 ]
 
 # ─────────────────────────── Middleware ───────────────────────
@@ -159,17 +160,28 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'http://localhost:5173'
 ).split(',')
 
-# ─────────────────────────── SendGrid ─────────────────────────
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+# ─────────────────────────── SMTP Email Backend ─────────────────
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@yourhospital.com')
 DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'Hospital Management System')
 
-if SENDGRID_API_KEY:
+EMAIL_HOST_ENV = os.getenv('EMAIL_HOST', '')
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+
+if EMAIL_HOST_ENV:
+    # Universal SMTP Provider (e.g., Mailercloud)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = EMAIL_HOST_ENV
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+elif SENDGRID_API_KEY:
+    # Legacy SendGrid fallback
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp.sendgrid.net'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'apikey'  # This must always literally be the string "apikey" according to SendGrid instructions
+    EMAIL_HOST_USER = 'apikey'
     EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

@@ -1,9 +1,9 @@
 from django.urls import path
 from .views import (
     HospitalListCreateView, HospitalDetailView,
-    BranchListCreateView, BranchDetailView,
+    BranchListCreateView, BranchDetailView, BranchStatsView,
     BranchServiceListCreateView, BranchServiceDetailView,
-    PublicBranchListView,
+    PublicBranchListView, ResolveMapLinkView,
 )
 
 app_name = 'branches'
@@ -15,6 +15,8 @@ urlpatterns = [
 
     # Branches
     path('', BranchListCreateView.as_view(), name='branch-list-create'),
+    path('stats/', BranchStatsView.as_view(), name='branch-stats'),
+    path('resolve-map-link/', ResolveMapLinkView.as_view(), name='resolve-map-link'),
     path('<int:pk>/', BranchDetailView.as_view(), name='branch-detail'),
 
     # Branch services

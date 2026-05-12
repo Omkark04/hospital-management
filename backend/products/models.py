@@ -29,6 +29,10 @@ class Product(models.Model):
         'users.CustomUser', on_delete=models.CASCADE,
         related_name='products', limit_choices_to={'role': 'owner'}
     )
+    branch = models.ForeignKey(
+        'branches.Branch', on_delete=models.CASCADE, 
+        related_name='products', null=True, blank=True
+    )
     name = models.CharField(max_length=200)
     category = models.ForeignKey(
         ProductCategory, on_delete=models.SET_NULL, null=True, blank=True, 
@@ -42,6 +46,7 @@ class Product(models.Model):
     # WhatsApp enquiry number (defaults to settings)
     whatsapp_number = models.CharField(max_length=15, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
+    low_stock_threshold = models.PositiveIntegerField(default=10, help_text='Threshold for low stock alert')
     display_quantity = models.CharField(max_length=50, blank=True, help_text='e.g. 500ml, 100 Tablets')
     features = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
@@ -97,3 +102,28 @@ class ProductEnquiry(models.Model):
 
     def __str__(self):
         return f'Enquiry for {self.product.name} by {self.enquirer_name}'
+
+class MovementType(models.TextChoices):
+    IN = 'in', 'Stock In'
+    OUT = 'out', 'Stock Out'
+    ADJUSTMENT = 'adjustment', 'Stock Adjustment'
+
+class ProductStockLedger(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_ledger')
+    branch = models.ForeignKey('branches.Branch', on_delete=models.CASCADE, related_name='product_stock_ledger', null=True, blank=True)
+    movement_type = models.CharField(max_length=20, choices=MovementType.choices)
+    quantity = models.PositiveIntegerField()
+    reference = models.CharField(max_length=200, blank=True, help_text='E.g., Order #45, Manual top-up')
+    notes = models.TextField(blank=True)
+    performed_by = models.ForeignKey('users.CustomUser', on_delete=models.SET_NULL, null=True, related_name='product_stock_actions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Product Stock Ledger'
+        verbose_name_plural = 'Product Stock Ledgers'
+        db_table = 'product_stock_ledger'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        branch_name = self.branch.name if self.branch else 'All Branches'
+        return f'{self.movement_type.upper()} {self.quantity} {self.product.name} @ {branch_name}'

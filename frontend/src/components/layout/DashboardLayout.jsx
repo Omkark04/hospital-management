@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
+import { FaMapMarkerAlt } from 'react-icons/fa';
 
 const pageTitles = {
   '/dashboard': { title: 'Dashboard', desc: "Welcome back! Here's what's happening today." },
@@ -60,13 +61,12 @@ export default function DashboardLayout() {
             <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
             <div className="topbar-title">
               <h1>{pageInfo.title}</h1>
-              <p>{pageInfo.desc}</p>
             </div>
           </div>
           <div className="topbar-actions">
             {user.branch_name && (
               <span className="badge badge-primary" style={{ fontSize: '0.75rem' }}>
-                📍 {user.branch_name}
+                <FaMapMarkerAlt /> {user.branch_name}
               </span>
             )}
             <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'white', cursor: 'default' }}>

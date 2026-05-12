@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getEmployees, createEmployee, updateEmployee } from '../../../api/hr';
 import { getStaff } from '../../../api/auth';
-import { getBranches } from '../../../api/branches';
+import { getBranches, getHospitals } from '../../../api/branches';
 import { useAuth } from '../../../context/AuthContext';
+import { FaEye, FaEyeSlash, FaUsers } from 'react-icons/fa';
 
 export default function EmployeeList() {
   const { user } = useAuth();
@@ -11,9 +12,25 @@ export default function EmployeeList() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [branches, setBranches] = useState([]);
-  const [staffUsers, setStaffUsers] = useState([]);
-  const [form, setForm] = useState({ user: '', branch: user?.branch_id || '', designation: '', salary: '', date_of_joining: '' });
+  const [hospitals, setHospitals] = useState([]);
+  const [selectedHospital, setSelectedHospital] = useState('');
+  const [form, setForm] = useState({ 
+    branch: user?.branch || user?.branch_id || '', 
+    designation: '', 
+    salary_type: 'monthly', 
+    salary: '', 
+    date_of_joining: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+    raw_username: '',
+    raw_password: '',
+    confirm_password: '',
+    role_type: 'employee'
+  });
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -27,19 +44,58 @@ export default function EmployeeList() {
 
   const openModal = (item = null) => {
     setEditItem(item);
-    setForm(item ? { user: item.user, branch: item.branch, designation: item.designation, salary: item.salary || '', date_of_joining: item.date_of_joining || '' }
-                  : { user: '', branch: user?.branch_id || '', designation: '', salary: '', date_of_joining: '' });
-    Promise.all([getBranches(), getStaff()])
-      .then(([b, s]) => { setBranches(b.data.results || b.data); setStaffUsers(s.data.results || s.data); });
+    setForm(item ? { 
+        branch: item.branch, 
+        designation: item.designation, 
+        salary_type: item.salary_type || 'monthly', 
+        salary: item.salary || '', 
+        date_of_joining: item.date_of_joining || '',
+        email: item.email || ''
+      }
+      : { 
+        branch: user?.role === 'owner' ? '' : user?.branch || user?.branch_id || '', 
+        designation: '', 
+        salary_type: 'monthly', 
+        salary: '', 
+        date_of_joining: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone_number: '',
+        raw_username: '',
+        raw_password: '',
+        confirm_password: '',
+        role_type: 'employee'
+      });
+    
+    if (user?.role === 'owner') {
+      Promise.all([getHospitals(), getBranches()])
+        .then(([h, b]) => { 
+          setHospitals(h.data.results || h.data); 
+          setBranches(b.data.results || b.data); 
+        });
+    }
     setShowModal(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!editItem && form.raw_password !== form.confirm_password) {
+      alert("Passwords do not match.");
+      return;
+    }
     setSaving(true);
     try {
-      if (editItem) await updateEmployee(editItem.id, form);
-      else await createEmployee(form);
+      const payload = { 
+        ...form,
+        raw_email: form.email,
+        salary: form.salary ? parseFloat(form.salary) : null,
+        date_of_joining: form.date_of_joining ? form.date_of_joining : null
+      };
+      delete payload.confirm_password;
+
+      if (editItem) await updateEmployee(editItem.id, payload);
+      else await createEmployee(payload);
       setShowModal(false);
       fetchData();
     } catch (err) { alert(JSON.stringify(err.response?.data) || 'Failed to save.'); }
@@ -59,7 +115,7 @@ export default function EmployeeList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : employees.length === 0 ? (
-          <div className="empty-state"><div className="icon">👥</div><p>No employees found.</p></div>
+          <div className="empty-state"><div className="icon"><FaUsers /></div><p>No employees found.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -72,6 +128,7 @@ export default function EmployeeList() {
                     <td>
                       <div style={{ fontWeight: 600 }}>{e.full_name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{e.phone}</div>
+                      {e.email && <div style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{e.email}</div>}
                     </td>
                     <td><span className="badge badge-secondary">{e.role}</span></td>
                     <td>{e.designation}</td>
@@ -97,28 +154,116 @@ export default function EmployeeList() {
             <div className="modal-body">
               <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {!editItem && (
-                  <div className="form-group">
-                    <label className="form-label">Staff User *</label>
-                    <select className="input" required value={form.user} onChange={e => setForm(p => ({ ...p, user: e.target.value }))}>
-                      <option value="">Select user...</option>
-                      {staffUsers.map(u => <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.role})</option>)}
-                    </select>
-                  </div>
+                  <>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label className="form-label">First Name *</label>
+                        <input className="input" required value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Last Name</label>
+                        <input className="input" value={form.last_name} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Mobile Number *</label>
+                        <input className="input" required value={form.phone_number} onChange={e => setForm(p => ({ ...p, phone_number: e.target.value }))} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Email *</label>
+                        <input type="email" className="input" required value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="employee@example.com" />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Username *</label>
+                        <input className="input" required value={form.raw_username} onChange={e => setForm(p => ({ ...p, raw_username: e.target.value }))} />
+                      </div>
+                      <div className="form-group" style={{ position: 'relative' }}>
+                        <label className="form-label">Password *</label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input 
+                            type={showPassword ? 'text' : 'password'} 
+                            minLength={6} 
+                            className="input" 
+                            style={{ width: '100%', paddingRight: '40px' }}
+                            required 
+                            value={form.raw_password} 
+                            onChange={e => setForm(p => ({ ...p, raw_password: e.target.value }))} 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                          >
+                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="form-group" style={{ position: 'relative' }}>
+                        <label className="form-label">Confirm Password *</label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input 
+                            type={showConfirmPassword ? 'text' : 'password'} 
+                            minLength={6} 
+                            className="input" 
+                            style={{ width: '100%', paddingRight: '40px' }}
+                            required 
+                            value={form.confirm_password} 
+                            onChange={e => setForm(p => ({ ...p, confirm_password: e.target.value }))} 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                          >
+                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <hr style={{ border: 'none', borderBottom: '1px solid var(--border)', margin: '10px 0' }} />
+                  </>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">Branch *</label>
-                    <select className="input" required value={form.branch} onChange={e => setForm(p => ({ ...p, branch: e.target.value }))}>
-                      <option value="">Select branch...</option>
-                      {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                  </div>
+                <div className="form-grid">
+                  {user?.role === 'owner' ? (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">Hospital *</label>
+                        <select className="input" required value={selectedHospital} onChange={e => { setSelectedHospital(e.target.value); setForm(p => ({ ...p, branch: '' })); }}>
+                          <option value="">Select hospital...</option>
+                          {hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Branch *</label>
+                        <select className="input" required value={form.branch} onChange={e => setForm(p => ({ ...p, branch: e.target.value }))} disabled={!selectedHospital}>
+                          <option value="">Select branch...</option>
+                          {branches.filter(b => b.hospital === parseInt(selectedHospital)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  ) : null}
+                  
+                  {!editItem && (
+                    <div className="form-group">
+                      <label className="form-label">Employee Type *</label>
+                      <select className="input" value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value }))}>
+                        <option value="employee">Normal Employee</option>
+                        <option value="receptionist">Receptionist</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label className="form-label">Designation *</label>
                     <input className="input" required value={form.designation} onChange={e => setForm(p => ({ ...p, designation: e.target.value }))} placeholder="e.g. Nurse, Lab Tech" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Salary (₹/mo)</label>
+                    <label className="form-label">Salary Type</label>
+                    <select className="input" value={form.salary_type} onChange={e => setForm(p => ({ ...p, salary_type: e.target.value }))}>
+                      <option value="monthly">Monthly</option>
+                      <option value="daily">Daily</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Salary (₹)</label>
                     <input type="number" className="input" value={form.salary} onChange={e => setForm(p => ({ ...p, salary: e.target.value }))} />
                   </div>
                   <div className="form-group">

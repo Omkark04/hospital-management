@@ -16,10 +16,6 @@ export default function DashboardHub() {
     receptionist: <ReceptionistDashboard />,
     employee: <EmployeeDashboard />,
     patient: <PatientDashboard />,
-    nurse: <DoctorDashboard />,
-    pharmacist: <ReceptionistDashboard />,
-    accountant: <ReceptionistDashboard />,
-    marketing: <EmployeeDashboard />,
   };
 
   return components[user.role] || <Navigate to="/login" replace />;

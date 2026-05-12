@@ -5,7 +5,8 @@ import { getPatients } from '../../../api/patients';
 import { getAppointments } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
-import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt } from 'react-icons/fa';
+import ConsultationWorkspace from './ConsultationWorkspace';
 
 function StatCard({ icon, label, value, color, link }) {
   return (
@@ -22,6 +23,7 @@ export default function DoctorDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ patients: null, appointments: null, prescriptions: null, campaigns: null });
   const [todayAppts, setTodayAppts] = useState([]);
+  const [activeConsultation, setActiveConsultation] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -48,7 +50,7 @@ export default function DoctorDashboard() {
   return (
     <div>
       <div style={{ marginBottom: 32 }}>
-        <h2>Welcome, Dr. {user?.full_name?.split(' ')[0] || 'Doctor'} 🩺</h2>
+        <h2>Welcome, Dr. {user?.full_name?.split(' ')[0] || 'Doctor'} <FaStethoscope /></h2>
         <p style={{ color: 'var(--text-muted)', marginTop: 6 }}>You have {stats.appointments ?? 0} appointments today.</p>
       </div>
 
@@ -59,7 +61,7 @@ export default function DoctorDashboard() {
         <StatCard icon={<FaBullhorn />} label="Active Campaigns" value={stats.campaigns} color="orange" link="/dashboard/my-campaigns" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="dashboard-panels">
         {/* Today's appointments */}
         <div className="card">
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -70,7 +72,7 @@ export default function DoctorDashboard() {
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {todayAppts.length === 0 ? (
-              <div className="empty-state" style={{ padding: 40 }}><div className="icon">📅</div><p>No appointments today</p></div>
+              <div className="empty-state" style={{ padding: 40 }}><div className="icon"><FaCalendarAlt /></div><p>No appointments today</p></div>
             ) : (
               <div>
                 {todayAppts.map(a => (
@@ -86,13 +88,13 @@ export default function DoctorDashboard() {
                         {a.status}
                       </span>
                       {a.status === 'scheduled' && (
-                        <Link 
-                          to={`/dashboard/prescriptions?patientId=${a.patient}&appointmentId=${a.id}`} 
+                        <button 
+                          onClick={() => setActiveConsultation(a)} 
                           className="btn btn-sm btn-primary"
                           style={{ padding: '4px 10px' }}
                         >
-                          + Prescribe
-                        </Link>
+                          Start Consult
+                        </button>
                       )}
                     </div>
                   </div>
@@ -105,8 +107,8 @@ export default function DoctorDashboard() {
         {/* Quick actions & Recent Patients */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div className="card card-body">
-            <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>⚡ Quick Actions</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}><FaBolt /> Quick Actions</h4>
+            <div className="quick-actions-grid">
               {[
                 { icon: <FaUserInjured />, label: 'My Patients', to: '/dashboard/patients' },
                 { icon: <FaPrescriptionBottleAlt />, label: 'Write Rx', to: '/dashboard/prescriptions' },
@@ -123,7 +125,7 @@ export default function DoctorDashboard() {
 
           <div className="card">
             <div className="card-header">
-              <h4>👥 Recent Patients</h4>
+              <h4><FaUsers /> Recent Patients</h4>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
               {todayAppts.length === 0 ? (
@@ -151,6 +153,10 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </div>
+      
+      {activeConsultation && (
+        <ConsultationWorkspace appointment={activeConsultation} onClose={() => setActiveConsultation(null)} />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from users.permissions import IsOwner, IsNotPatient
 from .models import Hospital, Branch, BranchService
@@ -94,3 +95,61 @@ class PublicBranchListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Branch.objects.filter(is_active=True)
+
+class BranchStatsView(APIView):
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request):
+        branches = Branch.objects.filter(hospital__owner=request.user, is_active=True)
+        stats = []
+        for b in branches:
+            patients_count = b.patient_set.count() if hasattr(b, 'patient_set') else 0
+            employees_count = b.users.count() if hasattr(b, 'users') else 0
+            
+            from billing.models import Bill
+            from django.db.models import Sum
+            revenue = Bill.objects.filter(branch=b).aggregate(total=Sum('paid_amount'))['total'] or 0
+            
+            stats.append({
+                'id': b.id,
+                'name': b.name,
+                'patients': patients_count,
+                'employees': employees_count,
+                'revenue': revenue
+            })
+        return Response(stats)
+
+
+import re
+import urllib.request
+
+class ResolveMapLinkView(APIView):
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def post(self, request):
+        url = request.data.get('url', '').strip()
+        if not url:
+            return Response({'error': 'No URL provided.'}, status=400)
+        
+        # If the user pasted an expanded link already containing coordinates, extract immediately
+        match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', url)
+        if match:
+            lat, lng = match.groups()
+            return Response({'latitude': lat, 'longitude': lng, 'resolved_url': url})
+        
+        try:
+            req = urllib.request.Request(
+                url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                final_url = response.geturl()
+                
+            match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', final_url)
+            if match:
+                lat, lng = match.groups()
+                return Response({'latitude': lat, 'longitude': lng, 'resolved_url': final_url})
+            
+            return Response({'error': 'Could not extract coordinates from expanded link.', 'resolved_url': final_url}, status=400)
+        except Exception as e:
+            return Response({'error': f'Failed to resolve map link: {str(e)}'}, status=400)

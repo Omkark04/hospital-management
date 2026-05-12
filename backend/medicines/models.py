@@ -22,6 +22,7 @@ class Medicine(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.PositiveIntegerField(default=0)
     unit = models.CharField(max_length=50, blank=True, help_text='e.g., mg, ml, strip')
+    low_stock_threshold = models.PositiveIntegerField(default=10, help_text='Threshold for low stock alert')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -76,3 +77,27 @@ class PrescriptionItem(models.Model):
 
     def __str__(self):
         return f'{self.medicine.name} — {self.dosage} for {self.duration}'
+
+class MovementType(models.TextChoices):
+    IN = 'in', 'Stock In'
+    OUT = 'out', 'Stock Out'
+    ADJUSTMENT = 'adjustment', 'Stock Adjustment'
+
+class MedicineStockLedger(models.Model):
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='stock_ledger')
+    branch = models.ForeignKey('branches.Branch', on_delete=models.CASCADE, related_name='medicine_stock_ledger')
+    movement_type = models.CharField(max_length=20, choices=MovementType.choices)
+    quantity = models.PositiveIntegerField()
+    reference = models.CharField(max_length=200, blank=True, help_text='E.g., Prescription #12, Manual top-up')
+    notes = models.TextField(blank=True)
+    performed_by = models.ForeignKey('users.CustomUser', on_delete=models.SET_NULL, null=True, related_name='medicine_stock_actions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Medicine Stock Ledger'
+        verbose_name_plural = 'Medicine Stock Ledgers'
+        db_table = 'medicine_stock_ledger'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.movement_type.upper()} {self.quantity} {self.medicine.name} @ {self.branch.name}'

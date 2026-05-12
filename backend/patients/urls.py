@@ -8,6 +8,7 @@ from .views import (
     PublicReviewListCreateView, AdminReviewListView, AdminReviewDetailView,
     PublicAvailableSlotsView, PublicBookAppointmentView
 )
+from .views_export import PatientExportView, PatientImportView
 
 app_name = 'patients'
 
@@ -17,6 +18,8 @@ urlpatterns = [
     path('treatments/', TreatmentListView.as_view(), name='treatment-list'),
 
     # Patients
+    path('export/', PatientExportView.as_view(), name='patient-export'),
+    path('import/', PatientImportView.as_view(), name='patient-import'),
     path('', PatientListCreateView.as_view(), name='patient-list-create'),
     path('<int:pk>/', PatientDetailView.as_view(), name='patient-detail'),
     path('me/', MyPatientProfileView.as_view(), name='my-profile'),

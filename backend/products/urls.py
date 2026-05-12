@@ -5,6 +5,7 @@ from .views import (
     ProductListCreateView, ProductDetailView,
     ProductCategoryListCreateView, ProductCategoryDetailView,
     ProductEnquiryCreateView, ProductEnquiryListView, EnquiryStatusUpdateView,
+    LowStockProductView, ProductStockMovementView, ProductLedgerListView,
 )
 
 app_name = 'products'
@@ -21,6 +22,9 @@ urlpatterns = [
     # Owner
     path('', ProductListCreateView.as_view(), name='product-list-create'),
     path('<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('low-stock/', LowStockProductView.as_view(), name='product-low-stock'),
+    path('stock-movement/', ProductStockMovementView.as_view(), name='product-stock-movement'),
+    path('ledger/', ProductLedgerListView.as_view(), name='product-ledger'),
     path('enquiries/', ProductEnquiryListView.as_view(), name='enquiry-list'),
     path('enquiries/<int:pk>/status/', EnquiryStatusUpdateView.as_view(), name='enquiry-status'),
 ]

@@ -196,6 +196,19 @@ export default function Contact() {
             </div>
           </div>
         </section>
+        
+        {/* Map Section */}
+        <section style={{ width: '100%', height: 450, marginTop: 40, background: '#eee' }}>
+          <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3752.3188615457166!2d75.71607437376034!3d19.868753326610502!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bda53c8846dd911%3A0xc70133cc23b7c0c0!2zRHIgc3BpbmUgYW5kIG5hcyAo4KSo4KS4KQ!5e0!3m2!1sen!2sin!4v1778309945583!5m2!1sen!2sin" 
+            width="100%" 
+            height="100%" 
+            style={{ border: 0 }} 
+            allowFullScreen="" 
+            loading="lazy" 
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </section>
       </div>
       <PublicFooter />
     </div>

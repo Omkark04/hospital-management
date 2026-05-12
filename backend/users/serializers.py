@@ -77,10 +77,25 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        from .utils import send_registration_email
+        from hr.models import Employee
         password = validated_data.pop('password')
         user = CustomUser(**validated_data)
         user.set_password(password)
         user.save()
+        
+        # Create Employee Profile for attendance and HR tracking
+        # (Exclude Patients and Owners if needed, but usually all staff need this)
+        if user.role != UserRole.PATIENT and user.branch:
+            Employee.objects.create(
+                user=user,
+                branch=user.branch,
+                designation=user.role.title()
+            )
+        
+        # Send email with credentials
+        send_registration_email(user, password)
+        
         return user
 
 

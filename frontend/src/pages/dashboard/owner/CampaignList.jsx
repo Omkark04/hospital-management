@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getCampaigns, createCampaign, updateCampaign, assignCampaignManager } from '../../../api/campaigns';
 import { getStaff } from '../../../api/auth';
 import { getBranches } from '../../../api/branches';
+import { FaBullseye, FaCalendarAlt, FaMapMarkerAlt, FaBuilding } from 'react-icons/fa';
 
 const STATUS_COLORS = { planned: 'secondary', active: 'success', completed: 'primary', cancelled: 'danger' };
 
@@ -90,7 +91,7 @@ export default function CampaignList() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
       ) : campaigns.length === 0 ? (
-        <div className="empty-state card card-body"><div className="icon">🎯</div><p>No campaigns yet.</p></div>
+        <div className="empty-state card card-body"><div className="icon"><FaBullseye /></div><p>No campaigns yet.</p></div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
           {campaigns.map(c => (
@@ -101,9 +102,9 @@ export default function CampaignList() {
               </div>
               {c.objective && <p style={{ fontSize: '0.85rem', marginBottom: 12, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.objective}</p>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-                <div>📅 {c.start_date} → {c.end_date}</div>
-                {c.location && <div>📍 {c.location}</div>}
-                {c.branch_name && <div>🏢 {c.branch_name}</div>}
+                <div><FaCalendarAlt /> {c.start_date} → {c.end_date}</div>
+                {c.location && <div><FaMapMarkerAlt /> {c.location}</div>}
+                {c.branch_name && <div><FaBuilding /> {c.branch_name}</div>}
                 {c.target_registrations && <div>🎯 Target: {c.target_registrations} patients</div>}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -129,7 +130,7 @@ export default function CampaignList() {
                   <label className="form-label">Campaign Name *</label>
                   <input className="input" required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Branch *</label>
                     <select className="input" required value={form.branch} onChange={e => setForm(p => ({ ...p, branch: e.target.value, assigned_doctor: '' }))}>

@@ -64,7 +64,7 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="dashboard-panels">
         {/* Appointments */}
         <div className="card">
           <div className="card-header"><h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FaCalendarAlt /> My Appointments</h4></div>

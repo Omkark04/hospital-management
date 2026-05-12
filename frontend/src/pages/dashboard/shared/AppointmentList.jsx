@@ -149,7 +149,7 @@ export default function AppointmentList() {
                     {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
                   </select>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Date *</label>
                     <input type="date" className="input" required value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))} />

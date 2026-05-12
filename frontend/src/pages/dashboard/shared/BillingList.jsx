@@ -134,16 +134,10 @@ export default function BillingList() {
 
   const handleDownloadPDF = async (bill) => {
     try {
-      const { data } = await getBillPDF(bill.id, true);
+      // Force refresh = true to ensure we pick up template changes
+      const { data } = await getBillPDF(bill.id, true); 
       if (data.pdf_url) {
-        // Trigger direct download using anchor tag
-        const link = document.createElement('a');
-        link.href = data.pdf_url;
-        link.setAttribute('download', `bill_${bill.id}_${bill.patient_uhid}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        
+        window.open(data.pdf_url, '_blank');
         fetchBills();
       } else {
         alert('Could not retrieve PDF URL.');
@@ -249,7 +243,7 @@ export default function BillingList() {
             </div>
             <div className="modal-body">
               <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Patient *</label>
                     <select className="input" required value={form.patient} onChange={e => {
@@ -332,7 +326,7 @@ export default function BillingList() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Discount (₹)</label>
                     <input type="number" className="input" min={0} value={form.discount} onChange={e => setForm(p => ({ ...p, discount: e.target.value }))} />
@@ -369,7 +363,7 @@ export default function BillingList() {
               <button className="modal-close" onClick={() => setShowPayModal(null)}>×</button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16, padding: 16, background: 'var(--bg-card)', borderRadius: 'var(--radius-md)' }}>
+              <div className="form-grid" style={{ marginBottom: 16, padding: 16, background: 'var(--bg-card)', borderRadius: 'var(--radius-md)' }}>
                 <div><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Total</span><div style={{ fontWeight: 700 }}>₹{showPayModal.total_amount}</div></div>
                 <div><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Balance Due</span><div style={{ fontWeight: 700, color: 'var(--danger)' }}>₹{showPayModal.balance_due}</div></div>
               </div>

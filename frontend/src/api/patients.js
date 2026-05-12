@@ -6,6 +6,11 @@ export const createPatient = (data) => api.post('/patients/', data);
 export const updatePatient = (id, data) => api.put(`/patients/${id}/`, data);
 export const getMyProfile = () => api.get('/patients/me/');
 
+export const exportPatients = (params) => api.get('/patients/export/', { params, responseType: 'blob' });
+export const importPatients = (formData) => api.post('/patients/import/', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+
 export const getDepartments = () => api.get('/patients/departments/');
 export const getTreatments = (departmentId) => api.get('/patients/treatments/', { params: departmentId ? { department: departmentId } : {} });
 

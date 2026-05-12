@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getHospitals, createHospital, updateHospital } from '../../../api/branches';
+import { FaHospital, FaMapMarkerAlt, FaMobileAlt, FaEnvelope } from 'react-icons/fa';
 
 export default function HospitalList() {
   const [hospitals, setHospitals] = useState([]);
@@ -51,7 +52,7 @@ export default function HospitalList() {
         <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
       ) : hospitals.length === 0 ? (
         <div className="empty-state card card-body">
-          <div className="icon">🏥</div>
+          <div className="icon"><FaHospital /></div>
           <p>No hospitals yet. Start by adding your first hospital.</p>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => openModal()}>+ Add Hospital</button>
         </div>
@@ -60,13 +61,13 @@ export default function HospitalList() {
           {hospitals.map(h => (
             <div key={h.id} className="card card-body">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🏥</div>
+                <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}><FaHospital /></div>
                 <button className="btn btn-ghost btn-sm" onClick={() => openModal(h)}>Edit</button>
               </div>
               <h3 style={{ fontSize: '1.1rem', marginBottom: 8 }}>{h.name}</h3>
-              {h.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4 }}>📱 {h.phone}</div>}
-              {h.email && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4 }}>📧 {h.email}</div>}
-              {h.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📍 {h.address}</div>}
+              {h.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4 }}><FaMobileAlt /> {h.phone}</div>}
+              {h.email && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4 }}><FaEnvelope /> {h.email}</div>}
+              {h.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}><FaMapMarkerAlt /> {h.address}</div>}
               <div className="sep" style={{ margin: '14px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 <span>{h.branches?.length || 0} branches</span>
@@ -90,7 +91,7 @@ export default function HospitalList() {
                   <label className="form-label">Hospital Name *</label>
                   <input className="input" required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. City Care Hospital" />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Phone</label>
                     <input className="input" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />

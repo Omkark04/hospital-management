@@ -145,8 +145,16 @@ def get_shared_link(dropbox_path: str, expires_in_hours: int = 4) -> str | None:
         settings_obj = dropbox.sharing.SharedLinkSettings(
             requested_visibility=dropbox.sharing.RequestedVisibility.public
         )
-        link_metadata = dbx.sharing_create_shared_link_with_settings(dropbox_path, settings_obj)
-        return link_metadata.url
+        try:
+            link_metadata = dbx.sharing_create_shared_link_with_settings(dropbox_path, settings_obj)
+            return link_metadata.url
+        except dropbox.exceptions.ApiError as api_err:
+            if api_err.error.is_shared_link_already_exists():
+                # Link already exists, fetch it again to be safe
+                links = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
+                if links.links:
+                    return links.links[0].url
+            raise api_err # Re-raise if it's a different API error
 
     except Exception as e:
         error_msg = str(e)

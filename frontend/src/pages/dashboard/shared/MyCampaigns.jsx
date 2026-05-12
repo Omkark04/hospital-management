@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { getMyCampaigns, getCampaignPatients, getCampaignSales, addCampaignSale, addCampaignPatient } from '../../../api/campaigns';
 import { createPatient, createAppointment } from '../../../api/patients';
 import { useAuth } from '../../../context/AuthContext';
+import { FaCalendarAlt, FaMapMarkerAlt, FaCommentDots, FaCoins } from 'react-icons/fa';
+import { FaBullseye } from 'react-icons/fa';
 
 const STATUS_COLORS = { planned: 'secondary', active: 'success', completed: 'primary', cancelled: 'danger' };
 
@@ -108,7 +110,7 @@ export default function MyCampaigns() {
       </div>
 
       {campaigns.length === 0 ? (
-        <div className="empty-state card card-body"><div className="icon">🎯</div><p>No campaigns assigned to you.</p></div>
+        <div className="empty-state card card-body"><div className="icon"><FaBullseye /></div><p>No campaigns assigned to you.</p></div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: 24 }}>
           {/* Campaign list */}
@@ -125,9 +127,9 @@ export default function MyCampaigns() {
                   <span className={`badge badge-${STATUS_COLORS[c.status]}`}>{c.status}</span>
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  📅 {c.start_date} → {c.end_date}
+                  <FaCalendarAlt /> {c.start_date} → {c.end_date}
                 </div>
-                {c.location && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>📍 {c.location}</div>}
+                {c.location && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}><FaMapMarkerAlt /> {c.location}</div>}
               </div>
             ))}
           </div>
@@ -169,7 +171,7 @@ export default function MyCampaigns() {
               {detailLoading ? (
                 <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div className="form-grid">
                   {/* Patients */}
                   <div className="card">
                     <div className="card-header"><h4>🧑‍⚕️ Registered Patients ({patients.length})</h4></div>
@@ -183,7 +185,7 @@ export default function MyCampaigns() {
                               <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.patient_name}</div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.patient_uhid}</div>
                             </div>
-                            {p.treatment_notes && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4, background: 'var(--bg-card)', padding: '6px 8px', borderRadius: '4px' }}>💬 {p.treatment_notes}</div>}
+                            {p.treatment_notes && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4, background: 'var(--bg-card)', padding: '6px 8px', borderRadius: '4px' }}><FaCommentDots /> {p.treatment_notes}</div>}
                           </div>
                         ))
                       )}
@@ -192,7 +194,7 @@ export default function MyCampaigns() {
 
                   {/* Sales */}
                   <div className="card">
-                    <div className="card-header"><h4>💰 Sales Records ({sales.length})</h4></div>
+                    <div className="card-header"><h4><FaCoins /> Sales Records ({sales.length})</h4></div>
                     <div className="card-body" style={{ padding: 0 }}>
                       {sales.length === 0 ? (
                         <div className="empty-state" style={{ padding: '24px' }}><p>No sales yet</p></div>
@@ -230,7 +232,7 @@ export default function MyCampaigns() {
                   <label className="form-label">Item Name *</label>
                   <input className="input" required value={saleForm.item_name} onChange={e => setSaleForm(p => ({ ...p, item_name: e.target.value }))} placeholder="e.g. Ayurvedic kit" />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Quantity *</label>
                     <input type="number" className="input" min={1} required value={saleForm.quantity} onChange={e => setSaleForm(p => ({ ...p, quantity: e.target.value }))} />
@@ -242,7 +244,7 @@ export default function MyCampaigns() {
                 </div>
                 <div className="modal-footer" style={{ padding: 0, border: 'none' }}>
                   <button type="button" className="btn btn-ghost" onClick={() => setShowSaleModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Saving...' : '💰 Record Sale'}</button>
+                  <button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Saving...' : <><FaCoins /> Record Sale</>}</button>
                 </div>
               </form>
             </div>
@@ -260,7 +262,7 @@ export default function MyCampaigns() {
             </div>
             <div className="modal-body">
               <form onSubmit={handlePatient} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Patient Name *</label>
                     <input className="input" required value={patientForm.first_name} onChange={e => setPatientForm(p => ({ ...p, first_name: e.target.value }))} placeholder="First Name" />

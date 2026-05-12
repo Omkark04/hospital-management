@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getMyAttendance } from '../../../api/hr';
+import { FaCheckCircle, FaAdjust, FaTimesCircle, FaUmbrellaBeach, FaCalendarDay, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
 
 const STATUS_COLORS = { present: 'success', absent: 'danger', half_day: 'warning', on_leave: 'info', holiday: 'secondary' };
-const STATUS_ICONS = { present: '✅', absent: '❌', half_day: '🌓', on_leave: '🏖️', holiday: '🎉' };
+const STATUS_ICONS = { present: <FaCheckCircle />, absent: <FaTimesCircle />, half_day: <FaAdjust />, on_leave: <FaUmbrellaBeach />, holiday: <FaCalendarDay /> };
 
 export default function MyAttendance() {
   const [records, setRecords] = useState([]);
@@ -47,22 +48,22 @@ export default function MyAttendance() {
       {/* Summary stats */}
       <div className="stats-grid" style={{ marginBottom: 28 }}>
         <div className="stat-card green">
-          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}>✅</div>
+          <div className="stat-icon" style={{ background: 'var(--success-bg)' }}><FaCheckCircle /></div>
           <div className="stat-label">Present</div>
           <div className="stat-value">{presentDays}</div>
         </div>
         <div className="stat-card orange">
-          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}>🌓</div>
+          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}><FaAdjust /></div>
           <div className="stat-label">Half Days</div>
           <div className="stat-value">{halfDays}</div>
         </div>
         <div className="stat-card red">
-          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}>❌</div>
+          <div className="stat-icon" style={{ background: 'var(--danger-bg)' }}><FaTimesCircle /></div>
           <div className="stat-label">Absent</div>
           <div className="stat-value">{absentDays}</div>
         </div>
         <div className="stat-card cyan">
-          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}>🏖️</div>
+          <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}><FaUmbrellaBeach /></div>
           <div className="stat-label">On Leave</div>
           <div className="stat-value">{leaveDays}</div>
         </div>
@@ -72,7 +73,7 @@ export default function MyAttendance() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : records.length === 0 ? (
-          <div className="empty-state"><div className="icon">✅</div><p>No records for this month.</p></div>
+          <div className="empty-state"><div className="icon"><FaCheckCircle /></div><p>No records for this month.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -105,7 +106,7 @@ export default function MyAttendance() {
       {/* Working hours summary */}
       {records.some(r => r.check_in && r.check_out) && (
         <div className="card card-body" style={{ marginTop: 20 }}>
-          <h4 style={{ marginBottom: 16, color: 'var(--primary)' }}>⏱️ Working Hours Summary</h4>
+          <h4 style={{ marginBottom: 16, color: 'var(--primary)' }}><FaClock /> Working Hours Summary</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {records.filter(r => r.check_in && r.check_out).slice(0, 6).map(r => {
               const [h1, m1] = r.check_in.split(':').map(Number);

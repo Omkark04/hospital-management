@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStaff, createStaff, updateStaff } from '../../../api/auth';
 import { getBranches } from '../../../api/branches';
+import { FaUsers } from 'react-icons/fa';
 
-const ROLES = ['doctor', 'receptionist', 'nurse', 'pharmacist', 'accountant', 'marketing', 'employee', 'patient'];
+const ROLES = ['doctor', 'receptionist', 'employee'];
 const ROLE_COLORS = { 
   owner: 'primary', 
   doctor: 'info', 
   receptionist: 'secondary', 
-  nurse: 'info', 
-  pharmacist: 'success', 
-  accountant: 'warning', 
-  marketing: 'danger', 
   employee: 'warning', 
   patient: 'success' 
 };
@@ -55,13 +52,13 @@ export default function StaffList() {
     }
     setSaving(true);
     const payload = { ...form };
-    
+
     // When editing and not changing password, don't send either field
     if (editItem && !payload.password) {
       delete payload.password;
       delete payload.confirm_password;
     }
-    
+
     try {
       if (editItem) await updateStaff(editItem.id, payload);
       else await createStaff(payload);
@@ -89,7 +86,7 @@ export default function StaffList() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : staff.length === 0 ? (
-          <div className="empty-state"><div className="icon">👥</div><p>No staff found.</p></div>
+          <div className="empty-state"><div className="icon"><FaUsers /></div><p>No staff found.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -124,7 +121,7 @@ export default function StaffList() {
             </div>
             <div className="modal-body">
               <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">First Name *</label>
                     <input className="input" required value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />

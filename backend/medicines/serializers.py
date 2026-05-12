@@ -1,15 +1,29 @@
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Medicine, Prescription, PrescriptionItem
+from .models import Medicine, Prescription, PrescriptionItem, MedicineStockLedger
 
 
 class MedicineSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
+    is_low_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Medicine
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_is_low_stock(self, obj):
+        return obj.stock_quantity <= obj.low_stock_threshold
+
+class MedicineStockLedgerSerializer(serializers.ModelSerializer):
+    performed_by_name = serializers.CharField(source='performed_by.get_full_name', read_only=True)
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
+
+    class Meta:
+        model = MedicineStockLedger
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'performed_by')
 
 
 class PrescriptionItemSerializer(serializers.ModelSerializer):
@@ -51,8 +65,15 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items', [])
         prescription = Prescription.objects.create(**validated_data)
         for item_data in items_data:
-            PrescriptionItem.objects.create(prescription=prescription, **item_data)
-        
+            item = PrescriptionItem.objects.create(prescription=prescription, **item_data)
+            # Deduct stock
+            if item.medicine:
+                item.medicine.stock_quantity = max(0, item.medicine.stock_quantity - item.quantity)
+                item.medicine.save()
+            elif item.product:
+                item.product.stock_quantity = max(0, item.product.stock_quantity - item.quantity)
+                item.product.save()
+
         # 1. Update Appointment Status if exists
         if prescription.appointment:
             from patients.models import AppointmentStatus
@@ -111,7 +132,24 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items', None)
         instance = super().update(instance, validated_data)
         if items_data is not None:
+            # Revert old stock before deleting
+            for old_item in instance.items.all():
+                if old_item.medicine:
+                    old_item.medicine.stock_quantity += old_item.quantity
+                    old_item.medicine.save()
+                elif old_item.product:
+                    old_item.product.stock_quantity += old_item.quantity
+                    old_item.product.save()
+                    
             instance.items.all().delete()
+            
             for item_data in items_data:
-                PrescriptionItem.objects.create(prescription=instance, **item_data)
+                new_item = PrescriptionItem.objects.create(prescription=instance, **item_data)
+                # Apply new stock deduction
+                if new_item.medicine:
+                    new_item.medicine.stock_quantity = max(0, new_item.medicine.stock_quantity - new_item.quantity)
+                    new_item.medicine.save()
+                elif new_item.product:
+                    new_item.product.stock_quantity = max(0, new_item.product.stock_quantity - new_item.quantity)
+                    new_item.product.save()
         return instance

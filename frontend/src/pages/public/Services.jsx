@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import PublicNavbar from '../../components/layout/PublicNavbar';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { FiCheckCircle, FiArrowRight, FiPhone, FiCalendar } from 'react-icons/fi';
@@ -103,14 +103,17 @@ const categories = [
 ];
 
 export default function Services() {
+  const location = useLocation();
+
   useEffect(() => {
-    if (window.location.hash) {
+    if (location.hash) {
+      const id = location.hash.substring(1);
       setTimeout(() => {
-        const el = document.querySelector(window.location.hash);
+        const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
-  }, []);
+  }, [location.hash]);
 
   return (
     <div style={{ background: 'var(--parchment)' }}>
@@ -172,10 +175,11 @@ export default function Services() {
 
                   <div className="responsive-grid-2" style={{ gap: 10, marginBottom: 28 }}>
                     {cat.treatments.map(t => (
-                      <div key={t} style={{
+                      <div key={t} id={t.toLowerCase().replace(/[^a-z0-9]/g, '-')} style={{
                         display: 'flex', gap: 8, padding: '10px 12px',
                         background: cat.bg, borderRadius: 10, fontSize: '0.875rem',
                         border: `1px solid ${cat.color}18`,
+                        scrollMarginTop: '160px'
                       }}>
                         <FiCheckCircle size={15} color={cat.color} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span style={{ fontWeight: 500, color: 'var(--bark)' }}>{t}</span>

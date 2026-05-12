@@ -16,6 +16,7 @@ import BookAppointment from './pages/public/BookAppointment';
 
 // Common components
 import BackToTop from './components/common/BackToTop';
+import ScrollToTop from './components/common/ScrollToTop';
 // Auth
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -37,6 +38,11 @@ const BillingList     = lazy(() => import('./pages/dashboard/shared/BillingList'
 const EmployeeList    = lazy(() => import('./pages/dashboard/shared/EmployeeList'));
 const AttendanceList  = lazy(() => import('./pages/dashboard/shared/AttendanceList'));
 const LeaveList       = lazy(() => import('./pages/dashboard/shared/LeaveList'));
+const PayrollList     = lazy(() => import('./pages/dashboard/shared/PayrollList'));
+const Inventory       = lazy(() => import('./pages/dashboard/shared/Inventory'));
+const AttendanceKiosk = lazy(() => import('./pages/dashboard/shared/AttendanceKiosk'));
+const ScanAttendance  = lazy(() => import('./pages/dashboard/shared/ScanAttendance'));
+const TelecallingDashboard = lazy(() => import('./pages/dashboard/receptionist/TelecallingDashboard'));
 const BranchList      = lazy(() => import('./pages/dashboard/owner/BranchList'));
 const HospitalList    = lazy(() => import('./pages/dashboard/owner/HospitalList'));
 const StaffList       = lazy(() => import('./pages/dashboard/owner/StaffList'));
@@ -63,6 +69,7 @@ function PageLoader() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -97,17 +104,22 @@ export default function App() {
               <Route path="billing" element={<BillingList />} />
               <Route path="employees" element={<EmployeeList />} />
               <Route path="attendance" element={<AttendanceList />} />
+              <Route path="attendance-kiosk" element={<AttendanceKiosk />} />
+              <Route path="scan-attendance" element={<ScanAttendance />} />
               <Route path="leaves" element={<LeaveList />} />
+              <Route path="payroll" element={<PayrollList />} />
               <Route path="referrals" element={<ReferralList />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="my-campaigns" element={<MyCampaigns />} />
+              <Route path="inventory" element={<Inventory />} />
+              <Route path="telecalling" element={<TelecallingDashboard />} />
+              <Route path="products" element={<ProductManage />} />
 
               {/* Owner */}
               <Route path="hospitals" element={<HospitalList />} />
               <Route path="branches" element={<BranchList />} />
               <Route path="staff" element={<StaffList />} />
               <Route path="campaigns" element={<CampaignList />} />
-              <Route path="products" element={<ProductManage />} />
               <Route path="enquiries" element={<EnquiryList />} />
               <Route path="reviews" element={<ReviewManage />} />
 

@@ -41,7 +41,7 @@ import DoctorImg from '../../assets/Doctor.png';
 const stats = [
   { value: '5000+', label: 'Treated Patients' },
   { value: '98%', label: 'Success Rate' },
-  { value: '10 years', label: 'Years Experience' },
+  { value: '10', label: 'Years Experience' },
   { value: '5', label: 'Therapy Types' },
 ];
 
@@ -380,7 +380,7 @@ export default function Home() {
             <div className="doctor-image-wrapper">
               <div className="doctor-bg-shape" />
               <img src={DoctorImg} alt="Dr. Mangesh Wagh" className="doctor-portrait" />
-              
+
               <div className="doctor-badge top-badge">
                 <div className="badge-icon"><FiShield size={24} color="var(--primary)" /></div>
                 <div>
@@ -440,8 +440,8 @@ export default function Home() {
                     backdropFilter: 'blur(8px)',
                   }}>
                     <div style={{ color: '#67e8f9', marginBottom: 8 }}>{t.icon}</div>
-                    <div style={{ fontWeight: 600, color: '#fff', marginBottom: 3, fontSize: '1rem' }}>{t.label}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.58)' }}>{t.desc}</div>
+                    <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4, fontSize: '1.1rem' }}>{t.label}</div>
+                    <div style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{t.desc}</div>
                   </div>
                 ))}
               </div>

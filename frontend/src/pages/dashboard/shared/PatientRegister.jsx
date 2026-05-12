@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPatient, getDepartments, getTreatments } from '../../../api/patients';
 
 import { useAuth } from '../../../context/AuthContext';
+import { FaCheckCircle, FaHourglassHalf } from 'react-icons/fa';
 
 const INITIAL = {
   first_name: '', last_name: '', phone: '', email: '',
@@ -62,7 +63,7 @@ export default function PatientRegister() {
       <div>
         <div className="page-header"><h2>Register Patient</h2></div>
         <div style={{ maxWidth: 540, margin: '40px auto', textAlign: 'center' }}>
-          <div style={{ fontSize: '4rem', marginBottom: 16 }}>✅</div>
+          <div style={{ fontSize: '4rem', marginBottom: 16, color: 'var(--success)' }}><FaCheckCircle /></div>
           <h2 style={{ marginBottom: 8 }}>Patient Registered!</h2>
           <p style={{ marginBottom: 8 }}>
             <strong>{success.first_name} {success.last_name}</strong> has been registered.
@@ -112,7 +113,7 @@ export default function PatientRegister() {
         {/* Section 1: Basic Info */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
           <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>👤 Personal Information</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-grid">
             <Field label="First Name" name="first_name" required />
             <Field label="Last Name" name="last_name" />
             <Field label="Phone" name="phone" required />
@@ -137,7 +138,7 @@ export default function PatientRegister() {
         {/* Section 2: Ayurvedic & Clinical Assessment */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
           <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🌿 Ayurvedic & Clinical Profile</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Primary Department</label>
               <select className="input" name="primary_department" value={form.primary_department} onChange={handleChange}>
@@ -169,7 +170,7 @@ export default function PatientRegister() {
         {/* Section 3: Emergency Contact */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
           <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🆘 Emergency Contact</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-grid">
             <Field label="Contact Name" name="emergency_contact_name" />
             <Field label="Contact Phone" name="emergency_contact_phone" />
           </div>
@@ -188,7 +189,7 @@ export default function PatientRegister() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-ghost" onClick={() => navigate('/dashboard/patients')}>Cancel</button>
           <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
-            {saving ? '⏳ Saving...' : '✅ Register Patient'}
+            {saving ? <><FaHourglassHalf /> Saving...</> : <><FaCheckCircle /> Register Patient</>}
           </button>
         </div>
       </form>

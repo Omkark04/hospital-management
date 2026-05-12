@@ -134,7 +134,7 @@ export default function ProductDetail() {
               )}
 
               {/* Trust Indicators */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 40 }}>
+              <div className="form-grid" style={{ marginBottom: 40 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 16, background: 'var(--parchment)', borderRadius: 12 }}>
                   <FiShield color="var(--primary)" size={20} />
                   <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>100% Genuine</span>
