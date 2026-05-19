@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from models import Hospital, Branch, BranchService
+from .models import Hospital, Branch, BranchService
 
 
 class BranchServiceSerializer(serializers.ModelSerializer):
