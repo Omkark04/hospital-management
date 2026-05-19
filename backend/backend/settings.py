@@ -148,17 +148,26 @@ SIMPLE_JWT = {
 }
 
 # ─────────────────────────── CORS ─────────────────────────────
-CORS_ALLOWED_ORIGINS = os.getenv(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173'
-).split(',')
+def _normalize_origins(raw: str) -> list:
+    """Ensure every origin has a scheme; default to https:// if missing."""
+    origins = []
+    for o in raw.split(','):
+        o = o.strip()
+        if o and not o.startswith(('http://', 'https://')):
+            o = 'https://' + o
+        if o:
+            origins.append(o)
+    return origins
+
+CORS_ALLOWED_ORIGINS = _normalize_origins(
+    os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
+)
 CORS_ALLOW_CREDENTIALS = True
 
 # ─────────────────────────── CSRF Trusted Origins ─────────────
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:5173'
-).split(',')
+CSRF_TRUSTED_ORIGINS = _normalize_origins(
+    os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173')
+)
 
 # ─────────────────────────── SMTP Email Backend ─────────────────
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@yourhospital.com')
