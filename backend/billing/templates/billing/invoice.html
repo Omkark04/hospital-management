@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice - Dr. SPINE & NERVE</title>
+    <title>Receipt cum Prescription - Dr. SPINE & NERVE</title>
     <style>
         @page {
             size: A4 portrait;
@@ -51,9 +51,10 @@
         .invoice-badge {
             background-color: #2e7d32;
             color: #ffffff;
-            font-size: 13pt;
+            font-size: 9pt;
             font-weight: bold;
-            padding: 6px 20px;
+            padding: 6px 8px;
+            letter-spacing: 0.5px;
             text-align: center;
         }
 
@@ -142,7 +143,7 @@
                 <div style="font-size: 8.5pt; color: #666;">Spine | Knee | Muscle | Nerve Care Specialists</div>
             </td>
             <td width="35%" align="right" valign="top">
-                <div class="invoice-badge">INVOICE</div>
+                <div class="invoice-badge">RECEIPT CUM PRESCRIPTION</div>
                 <div style="margin-top: 8px; font-size: 8.5pt; line-height: 1.4;">
                     <strong>Bill No: #{{ bill.id }}</strong><br>
                     Date: {{ bill.created_at|date:"d M Y" }}<br>
@@ -185,11 +186,12 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th width="8%">#</th>
-                <th width="52%">Description of Service</th>
-                <th width="10%" align="center">Qty</th>
-                <th width="15%" align="right">Price (Rs.)</th>
-                <th width="15%" align="right">Total (Rs.)</th>
+                <th width="6%">#</th>
+                <th width="42%">Description of Service</th>
+                <th width="18%">Dosage</th>
+                <th width="8%" align="center">Qty</th>
+                <th width="13%" align="right">Price (Rs.)</th>
+                <th width="13%" align="right">Total (Rs.)</th>
             </tr>
         </thead>
         <tbody>
@@ -197,6 +199,7 @@
             <tr>
                 <td align="center">{{ forloop.counter }}</td>
                 <td>{{ item.description }}</td>
+                <td>{{ item.dosage }}</td>
                 <td align="center">{{ item.quantity }}</td>
                 <td align="right">{{ item.unit_price }}</td>
                 <td align="right">{{ item.total_price }}</td>
@@ -211,9 +214,20 @@
                 <div class="card">
                     <div class="card-header">Notes & Remarks</div>
                     <div class="card-body" style="font-size: 8pt; color: #666; min-height: 40px;">
-                        {{ bill.notes|default:"Thank you for choosing Dr. SPINE & NERVE. Please bring this invoice for all future visits. We wish you a speedy recovery!" }}
+                        {{ bill.notes|default:"Thank you for choosing Dr. SPINE & NERVE. Please bring this receipt cum prescription for all future visits. We wish you a speedy recovery!" }}
                     </div>
                 </div>
+                {% if bill.next_followup %}
+                <div class="card" style="margin-top: 10px;">
+                    <div class="card-header">Next Follow-up</div>
+                    <div class="card-body" style="font-size: 8.5pt; color: #2e7d32; font-weight: bold;">
+                        Date: {{ bill.next_followup.scheduled_date|date:"d M Y" }} | Time: {{ bill.next_followup.scheduled_time|time:"h:i A" }}
+                        {% if bill.next_followup.reason %}
+                        <div style="font-size: 8pt; color: #555; font-weight: normal; margin-top: 2px;">Reason: {{ bill.next_followup.reason }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 <div style="font-size: 9pt; margin-top: 8px;">
                     <strong>Payment Mode:</strong> {{ bill.get_payment_mode_display|default:"Cash" }}
                 </div>
@@ -262,9 +276,9 @@
     <div id="footer-content">
         <table width="100%">
             <tr>
-                <td width="33%" align="left">Address: Phule Nagar, Badnapur</td>
-                <td width="34%" align="center"><strong>www.drspinehms.com</strong></td>
-                <td width="33%" align="right">Contact: +91 8009 85 9008</td>
+                <td width="33%" align="left">Email: contact@drspineclinic.com</td>
+                <td width="34%" align="center"><strong>drspineclinic.com</strong></td>
+                <td width="33%" align="right">Contact: 97633 31118</td>
             </tr>
         </table>
     </div>

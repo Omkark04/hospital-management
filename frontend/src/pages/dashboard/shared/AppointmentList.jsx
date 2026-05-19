@@ -27,16 +27,23 @@ export default function AppointmentList() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const ensurePatientsLoaded = () => {
+    if (!patients.length) {
+      getPatients().then(({ data }) => setPatients(data.results || data)).catch(console.error);
+    }
+  };
+
   const openNew = () => {
     setEditItem(null);
     setForm({ patient: '', scheduled_date: '', scheduled_time: '', reason: '', branch: user?.branch_id || '' });
-    if (!patients.length) getPatients().then(({ data }) => setPatients(data.results || data));
+    ensurePatientsLoaded();
     setShowModal(true);
   };
 
   const openEdit = (a) => {
     setEditItem(a);
     setForm({ patient: a.patient, scheduled_date: a.scheduled_date, scheduled_time: a.scheduled_time, reason: a.reason, branch: a.branch });
+    ensurePatientsLoaded();
     setShowModal(true);
   };
 

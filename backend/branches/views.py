@@ -34,7 +34,7 @@ class BranchListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Branch.objects.filter(hospital__owner=self.request.user)
+        return Branch.objects.filter(hospital__owner=self.request.user).order_by('id')
 
     def create(self, request, *args, **kwargs):
         # Ensure the hospital belongs to the requesting owner

@@ -29,24 +29,31 @@ export default function PublicNavbar() {
     { to: '/contact', label: 'Contact' },
   ];
 
+  const cleanId = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
   const megaMenuData = [
     {
+      id: "spine",
       category: "Spine & Joint Treatments",
       items: ["Back Pain (Lower & Upper)", "Slip Disc (Disc Bulge / Herniation)", "Sciatica Pain", "Neck Pain (Cervical Spondylosis)", "Shoulder Pain (Frozen Shoulder)", "Knee Pain (Gap, Swelling, Stiffness)", "Ligament Injuries (ACL / PCL)", "Difficulty in Walking / Bending"]
     },
     {
+      id: "ayurveda",
       category: "Ayurvedic Therapies",
-      items: ["Janu Basti (Knee Therapy)", "Kati Basti (Back Therapy)", "Snehan (Oil Massage Therapy)", "Potli Therapy", "Lep Therapy", "Steam Therapy"]
+      items: ["Janu Basti — Knee Therapy", "Kati Basti — Back Therapy", "Snehan — Oil Massage Therapy", "Potli Therapy", "Lep Therapy", "Steam Therapy"]
     },
     {
+      id: "sujok",
       category: "Sujok Therapy",
-      items: ["Pain Management through Sujok", "Spine & Joint Related Sujok Treatment", "Non-invasive Drug-free Therapy"]
+      items: ["Pain Management through Sujok", "Spine & Joint Specific Sujok", "Non-Invasive Drug-Free Therapy"]
     },
     {
+      id: "advanced",
       category: "Advanced Therapy Support",
       items: ["Electric Stimulation Therapy", "Chiropractic Gun Therapy", "Dual Head Hammer Massage", "Crazy Fit Machine Therapy", "Full Body Massage Chair Relaxation"]
     },
     {
+      id: "counseling",
       category: "Counseling & Lifestyle",
       items: ["Pain Management Counseling", "Posture Correction Guidance", "Lifestyle Modification Advice"]
     }
@@ -79,11 +86,32 @@ export default function PublicNavbar() {
                   <div className="mega-menu-grid">
                     {megaMenuData.map((section, idx) => (
                       <div key={idx} className="mega-menu-column">
-                        <h4 className="mega-menu-title">{section.category}</h4>
-                        <ul className="mega-menu-list">
+                        <Link 
+                          to={`/services#${section.id}`}
+                          style={{ textDecoration: 'none', display: 'block' }}
+                          onClick={() => {
+                            if (window.location.pathname === '/services') {
+                              const el = document.getElementById(section.id);
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                        >
+                          <h4 className="mega-menu-title" style={{ cursor: 'pointer', margin: 0, paddingBottom: 8 }}>{section.category}</h4>
+                        </Link>
+                        <ul className="mega-menu-list" style={{ marginTop: 6 }}>
                           {section.items.map((item, itemIdx) => (
                             <li key={itemIdx}>
-                              <Link to={`/services#${item.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>{item}</Link>
+                              <Link 
+                                to={`/services#${cleanId(item)}`}
+                                onClick={() => {
+                                  if (window.location.pathname === '/services') {
+                                    const el = document.getElementById(cleanId(item));
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  }
+                                }}
+                              >
+                                {item}
+                              </Link>
                             </li>
                           ))}
                         </ul>
@@ -148,9 +176,17 @@ export default function PublicNavbar() {
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>{section.category}</div>
                         {section.items.slice(0, 4).map((item, itemIdx) => (
                           <Link key={itemIdx} 
-                            to={`/services#${item.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                            to={`/services#${cleanId(item)}`}
                             style={{ display: 'block', padding: '6px 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
-                            onClick={() => setMobileOpen(false)}>
+                            onClick={() => {
+                              setMobileOpen(false);
+                              if (window.location.pathname === '/services') {
+                                setTimeout(() => {
+                                  const el = document.getElementById(cleanId(item));
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }, 150);
+                              }
+                            }}>
                             {item}
                           </Link>
                         ))}

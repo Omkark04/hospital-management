@@ -10,7 +10,7 @@ class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
         fields = '__all__'
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'branch', 'created_at', 'updated_at')
 
     def get_is_low_stock(self, obj):
         return obj.stock_quantity <= obj.low_stock_threshold

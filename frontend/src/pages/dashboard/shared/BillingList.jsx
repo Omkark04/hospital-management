@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getBills, createBill, updateBill, updatePayment, getBillPDF } from '../../../api/billing';
+import api from '../../../api/axios';
 import { getPatients } from '../../../api/patients';
 import { getMedicines } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
@@ -132,9 +133,9 @@ export default function BillingList() {
     finally { setSaving(false); }
   };
 
-  const handleDownloadPDF = async (bill) => {
+  // ── 1. Generate PDF Button Handler (Web View Inspection)
+  const handleGeneratePDFLink = async (bill) => {
     try {
-      // Force refresh = true to ensure we pick up template changes
       const { data } = await getBillPDF(bill.id, true); 
       if (data.pdf_url) {
         window.open(data.pdf_url, '_blank');
@@ -143,7 +144,30 @@ export default function BillingList() {
         alert('Could not retrieve PDF URL.');
       }
     } catch (err) {
-      alert('Error fetching PDF. Make sure backend dependencies are installed.');
+      alert('Error generating PDF link.');
+    }
+  };
+
+  // ── 2. Invoice Button Handler (Absolute Native Binary File Download)
+  const handleDirectInvoiceDownload = async (bill) => {
+    try {
+      const res = await api.get(`/billing/${bill.id}/pdf/`, { 
+        params: { download: 'true' }, 
+        responseType: 'blob',
+        timeout: 0 
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Invoice_${bill.id}_${bill.patient_uhid || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      fetchBills();
+    } catch (err) {
+      alert('Error downloading binary invoice file directly.');
     }
   };
 
@@ -217,8 +241,8 @@ export default function BillingList() {
                             <FaCreditCard /> Pay
                           </button>
                         )}
-                        <button className="btn btn-outline btn-sm" onClick={() => handleDownloadPDF(b)} title="Generate/Download PDF Invoice" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <FaFileInvoice /> Invoice
+                        <button className="btn btn-outline btn-sm" onClick={() => handleDirectInvoiceDownload(b)} title="Directly Download PDF Receipt" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <FaFileInvoice /> Receipt
                         </button>
                         <button className="btn btn-ghost btn-sm" style={{ color: '#25D366', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => sendWhatsApp(b)} title="Send via WhatsApp">
                           <FaWhatsapp size={16} /> WhatsApp
@@ -343,7 +367,7 @@ export default function BillingList() {
                     {saving ? 'Saving...' : showEditModal ? 'Update Bill' : 'Create Bill'}
                   </button>
                   {showEditModal && (
-                    <button type="button" className="btn btn-outline" onClick={() => handleDownloadPDF(showEditModal)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button type="button" className="btn btn-outline" onClick={() => handleGeneratePDFLink(showEditModal)} title="Open Generated Dropbox Web Preview" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <FaFileInvoice /> Generate PDF
                     </button>
                   )}

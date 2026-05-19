@@ -33,6 +33,7 @@ class ProductPublicSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """Full serializer for Owner management."""
     category_name = serializers.CharField(source='category.name', read_only=True, default="Health Product")
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
     final_price = serializers.ReadOnlyField()
     whatsapp_link = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()

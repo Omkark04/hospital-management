@@ -176,7 +176,19 @@ a  { color: var(--moss); text-decoration: none; transition: opacity var(--transi
 a:hover { opacity: 0.80; }
 
 /* ── Layout ── */
-.container { max-width: 1600px; margin: 0 auto; padding: 0 20px; }
+.container { 
+  width: 100%;
+  max-width: 1600px; 
+  margin: 0 auto; 
+  padding: 0 20px; 
+}
+
+/* Enforce precise 80% default container ratio on Desktop viewports */
+@media (min-width: 1025px) {
+  .container {
+    max-width: 80% !important;
+  }
+}
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }

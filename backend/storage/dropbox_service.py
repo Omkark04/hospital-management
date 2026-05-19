@@ -172,3 +172,32 @@ def get_shared_link(dropbox_path: str, expires_in_hours: int = 4) -> str | None:
         else:
             print(f'[Dropbox] Shared link error: {e}')
         return None
+
+
+def get_space_usage() -> dict | None:
+    """
+    Get space usage metrics for the connected Dropbox account.
+    Returns dict with 'used_bytes', 'allocated_bytes', and 'used_percent'.
+    """
+    if not _is_configured():
+        return None
+
+    dbx = _get_client()
+    try:
+        usage = dbx.users_get_space_usage()
+        used = usage.used
+        allocated = 0
+        if usage.allocation.is_individual():
+            allocated = usage.allocation.get_individual().allocated
+        elif usage.allocation.is_team():
+            allocated = usage.allocation.get_team().allocated
+        
+        return {
+            'used_bytes': used,
+            'allocated_bytes': allocated,
+            'used_percent': round((used / allocated) * 100, 1) if allocated > 0 else 0
+        }
+    except Exception as e:
+        print(f'[Dropbox] Failed to fetch space usage: {e}')
+        return None
+

@@ -91,11 +91,14 @@ class ProductListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         owner = get_owner(self.request.user)
-        qs = Product.objects.filter(owner=owner)
-        
-        if self.request.user.role != UserRole.OWNER:
-            # Doctors/Receptionists only see their branch's non-public products
-            qs = qs.filter(branch=getattr(self.request.user, 'branch', None), for_public=False)
+        if self.request.user.role == UserRole.OWNER:
+            qs = Product.objects.filter(owner=owner, for_public=True)
+        else:
+            qs = Product.objects.filter(owner=owner, branch=getattr(self.request.user, 'branch', None), for_public=False)
+            
+        branch_id = self.request.query_params.get('branch')
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
         return qs
 
     def perform_create(self, serializer):
@@ -108,7 +111,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
                 for_patients=True
             )
         else:
-            serializer.save(owner=owner)
+            serializer.save(owner=owner, for_patients=False)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
@@ -171,7 +174,10 @@ class LowStockProductView(generics.ListAPIView):
 
     def get_queryset(self):
         owner = get_owner(self.request.user)
-        return Product.objects.filter(owner=owner, is_active=True, stock_quantity__lte=F('low_stock_threshold'))
+        qs = Product.objects.filter(owner=owner, is_active=True, stock_quantity__lte=F('low_stock_threshold'))
+        if self.request.user.role != UserRole.OWNER:
+            qs = qs.filter(branch=getattr(self.request.user, 'branch', None), for_public=False)
+        return qs
 
 class ProductStockMovementView(APIView):
     permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]

@@ -27,7 +27,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
 
     def get_queryset(self):
-        return branch_qs(Employee.objects.filter(is_active=True), self.request.user)
+        return branch_qs(Employee.objects.filter(is_active=True), self.request.user).order_by('id')
 
     def perform_create(self, serializer):
         if self.request.user.role != UserRole.OWNER:

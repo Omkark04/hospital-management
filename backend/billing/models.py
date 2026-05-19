@@ -50,6 +50,14 @@ class Bill(models.Model):
     def balance_due(self):
         return self.total_amount - self.discount - self.paid_amount
 
+    @property
+    def next_followup(self):
+        # Find the earliest appointment for this patient scheduled after the bill's created_at date
+        followup = self.patient.appointments.filter(
+            scheduled_date__gt=self.created_at.date()
+        ).order_by('scheduled_date', 'scheduled_time').first()
+        return followup
+
     def save(self, *args, **kwargs):
         # Auto-update payment_status based on paid_amount
         net = self.total_amount - self.discount
@@ -81,6 +89,22 @@ class BillItem(models.Model):
         verbose_name = 'Bill Item'
         verbose_name_plural = 'Bill Items'
         db_table = 'bill_items'
+
+    @property
+    def dosage(self):
+        if self.medicine:
+            if self.bill.prescription:
+                rx_item = self.bill.prescription.items.filter(medicine=self.medicine).first()
+                if rx_item and rx_item.dosage:
+                    return rx_item.dosage
+            from medicines.models import PrescriptionItem
+            last_rx_item = PrescriptionItem.objects.filter(
+                prescription__patient=self.bill.patient,
+                medicine=self.medicine
+            ).order_by('-prescription__created_at').first()
+            if last_rx_item and last_rx_item.dosage:
+                return last_rx_item.dosage
+        return "—"
 
     def save(self, *args, **kwargs):
         self.total_price = self.unit_price * self.quantity

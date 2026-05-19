@@ -24,6 +24,26 @@ class MedicineListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
 
     def get_queryset(self):
+        # Auto-migrate legacy branch-specific products into Medicines so they appear natively
+        try:
+            from products.models import Product
+            legacy_prods = Product.objects.filter(for_public=False, branch__isnull=False)
+            for prod in legacy_prods:
+                Medicine.objects.get_or_create(
+                    branch=prod.branch,
+                    name=prod.name,
+                    defaults={
+                        'description': prod.description or '',
+                        'price': prod.price,
+                        'stock_quantity': prod.stock_quantity,
+                        'low_stock_threshold': getattr(prod, 'low_stock_threshold', 10),
+                        'is_active': prod.is_active,
+                        'category': 'other',
+                    }
+                )
+        except Exception:
+            pass
+
         qs = Medicine.objects.filter(is_active=True)
         
         # Allow filtering by branch from query params (e.g., for consultations)
@@ -40,6 +60,9 @@ class MedicineListCreateView(generics.ListCreateAPIView):
         if category:
             qs = qs.filter(category=category)
         return qs
+
+    def perform_create(self, serializer):
+        serializer.save(branch=self.request.user.branch)
 
 
 class MedicineDetailView(generics.RetrieveUpdateDestroyAPIView):

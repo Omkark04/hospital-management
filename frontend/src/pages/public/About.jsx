@@ -130,7 +130,7 @@ export default function About() {
                     Appointment <FiArrowRight style={{ marginLeft: 8 }} />
                   </Link>
                   <div style={{ fontFamily: '"Great Vibes", cursive', fontSize: '2.4rem', color: 'var(--navy)', opacity: 0.8, transform: 'rotate(-4deg)' }}>
-                    Mangesh Wagh
+                    Dr. Mangesh Wagh
                   </div>
                 </div>
               </div>
@@ -179,31 +179,31 @@ export default function About() {
                   flexDirection: 'column',
                   alignItems: 'center'
                 }}>
-                  <div style={{ 
-                    marginBottom: 16, 
-                    width: 56, height: 56, 
-                    background: 'var(--parchment)', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                  <div style={{
+                    marginBottom: 16,
+                    width: 56, height: 56,
+                    background: 'var(--parchment)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     border: '1px solid var(--border-gold)',
                     boxShadow: '0 4px 10px rgba(180, 160, 140, 0.1)'
                   }}>
                     <v.Icon size={26} color="var(--clay)" />
                   </div>
-                  <h4 style={{ 
-                    marginBottom: 10, 
-                    color: 'var(--bark)', 
+                  <h4 style={{
+                    marginBottom: 10,
+                    color: 'var(--bark)',
                     fontFamily: '"Cormorant Garamond", serif',
                     fontSize: '1.4rem',
                     fontWeight: 700
                   }}>
                     {v.title}
                   </h4>
-                  <p style={{ 
-                    fontSize: '1.05rem', 
-                    lineHeight: 1.65, 
+                  <p style={{
+                    fontSize: '1.05rem',
+                    lineHeight: 1.65,
                     color: 'var(--text-secondary)',
                     margin: '0 auto'
                   }}>

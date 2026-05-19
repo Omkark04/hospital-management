@@ -14,9 +14,8 @@ export default function ImageUpload({ onUploadSuccess, currentImage }) {
     setError(null);
 
     // Using Cloudinary Unsigned Upload
-    // Note: In a real app, these should come from env/settings
-    const CLOUD_NAME = 'demo'; // Placeholder
-    const UPLOAD_PRESET = 'docs_upload_example_us_preset'; // Placeholder
+    const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dmnjv3bkr';
+    const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
     const formData = new FormData();
     formData.append('file', file);

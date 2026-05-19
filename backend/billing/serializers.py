@@ -9,7 +9,7 @@ class BillItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = BillItem
         fields = ('id', 'bill', 'description', 'medicine', 'medicine_name', 'product', 'product_name', 'quantity', 'unit_price', 'total_price')
-        read_only_fields = ('id', 'total_price')
+        read_only_fields = ('id', 'bill', 'total_price')
 
 
 class BillSerializer(serializers.ModelSerializer):

@@ -6,12 +6,13 @@ import { getEmployees, getLeaves } from '../../../api/hr';
 import { getCampaigns } from '../../../api/campaigns';
 import { getBranches, getBranchStats } from '../../../api/branches';
 import { getBills } from '../../../api/billing';
+import api from '../../../api/axios';
 import { getEnquiries } from '../../../api/products';
 import { getReferrals } from '../../../api/referrals';
 import { 
   FaUserInjured, FaUsers, FaBullhorn, FaBuilding, FaBox, 
   FaUserCircle, FaLink, FaBell, FaChartLine, FaBolt, FaPlane, 
-  FaCommentAlt, FaCrown, FaMoneyBillWave 
+  FaCommentAlt, FaCrown, FaMoneyBillWave, FaFileInvoiceDollar, FaDownload, FaTrash 
 } from 'react-icons/fa';
 import BranchDetailModal from './BranchDetailModal';
 
@@ -32,10 +33,65 @@ function StatCard({ icon, label, value, color, link, badge }) {
 export default function OwnerDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ patients: null, employees: null, campaigns: null, branches: null });
-  const [finances, setFinances] = useState({ totalRevenue: 0, pendingDues: 0 });
+  const [finances, setFinances] = useState({ totalRevenue: 0, pendingDues: 0, dayTotals: [0, 0, 0, 0, 0, 0, 0], dayHeights: [0, 0, 0, 0, 0, 0, 0] });
   const [focus, setFocus] = useState({ leaves: 0, enquiries: 0, referrals: 0 });
   const [branchStats, setBranchStats] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
+
+  // Bulk Invoice Administration State
+  const [bulkFilter, setBulkFilter] = useState({ branch: '', start_date: '', end_date: '' });
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [dropboxUsage, setDropboxUsage] = useState(null);
+  const [checkingUsage, setCheckingUsage] = useState(false);
+
+  const checkDropboxUsage = async () => {
+    setCheckingUsage(true);
+    try {
+      const res = await api.get('/billing/bulk-manage/', { params: { action: 'usage' } });
+      setDropboxUsage(res.data);
+    } catch (err) {
+      alert('Could not fetch Dropbox storage usage. Ensure app permissions and tokens are fully refreshed.');
+    } finally {
+      setCheckingUsage(false);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (action === 'delete' && !confirm('Are you sure you want to bulk delete matching invoice PDFs from Dropbox? This cannot be undone.')) {
+      return;
+    }
+    setBulkLoading(true);
+    const params = { action };
+    if (bulkFilter.branch) params.branch = bulkFilter.branch;
+    if (bulkFilter.start_date) params.start_date = bulkFilter.start_date;
+    if (bulkFilter.end_date) params.end_date = bulkFilter.end_date;
+
+    try {
+      if (action === 'download') {
+        const res = await api.get('/billing/bulk-manage/', { 
+          params, 
+          responseType: 'blob',
+          timeout: 0 // Disable default 15s client abortion limit for long-running stream compilations
+        });
+        const blob = new Blob([res.data], { type: 'application/zip' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `bulk_invoices_${bulkFilter.branch || 'all'}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        const res = await api.delete('/billing/bulk-manage/', { params });
+        alert(res.data?.detail || 'Bulk deletion completed successfully.');
+      }
+    } catch (err) {
+      alert(err.response?.status === 404 ? 'No matching invoice PDFs found for the selected filters.' : 'Error executing bulk action.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   useEffect(() => {
     // 1. Stats
@@ -54,11 +110,25 @@ export default function OwnerDashboard() {
       const bills = res.data.results || res.data || [];
       let total = 0;
       let dues = 0;
+      const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+
       bills.forEach(b => {
-        total += Number(b.amount_paid || 0);
-        dues += (Number(b.total_amount || 0) - Number(b.amount_paid || 0));
+        const paid = Number(b.paid_amount || 0);
+        total += paid;
+        dues += Number(b.balance_due || 0);
+
+        if (b.created_at) {
+          const dObj = new Date(b.created_at);
+          let dayIdx = dObj.getDay() - 1;
+          if (dayIdx === -1) dayIdx = 6;
+          dayTotals[dayIdx] += paid;
+        }
       });
-      setFinances({ totalRevenue: total, pendingDues: dues });
+
+      const maxDay = Math.max(...dayTotals, 100);
+      const dayHeights = dayTotals.map(v => Math.round((v / maxDay) * 100));
+
+      setFinances({ totalRevenue: total, pendingDues: dues, dayTotals, dayHeights });
     }).catch(() => {});
 
     // 3. Actionable Focus
@@ -77,6 +147,9 @@ export default function OwnerDashboard() {
 
     // 4. Branch Stats
     getBranchStats().then(res => setBranchStats(res.data)).catch(() => {});
+
+    // 5. Cloud Storage Usage
+    checkDropboxUsage();
   }, []);
 
   return (
@@ -138,14 +211,36 @@ export default function OwnerDashboard() {
           </div>
           
           {/* Simple CSS Chart */}
-          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>Weekly Trend</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', height: 60, gap: 8 }}>
-              {[40, 70, 45, 90, 60, 100, 80].map((h, i) => (
-                <div key={i} style={{ flex: 1, backgroundColor: i === 6 ? 'var(--turmeric)' : 'var(--moss)', opacity: i === 6 ? 1 : 0.4, height: `${h}%`, borderRadius: '4px 4px 0 0', transition: 'height 0.5s ease' }} />
-              ))}
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 20 }}>Weekly Trend (Day-wise Income)</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', height: 80, gap: 8 }}>
+              {(finances.dayHeights || [0, 0, 0, 0, 0, 0, 0]).map((h, i) => {
+                const todayIdx = new Date().getDay() - 1 === -1 ? 6 : new Date().getDay() - 1;
+                const amt = finances.dayTotals?.[i] || 0;
+                return (
+                  <div 
+                    key={i} 
+                    style={{ 
+                      flex: 1, 
+                      backgroundColor: i === todayIdx ? 'var(--turmeric)' : 'var(--moss)', 
+                      opacity: amt > 0 ? (i === todayIdx ? 1 : 0.8) : 0.2, 
+                      height: `${Math.max(h, 4)}%`, 
+                      borderRadius: '4px 4px 0 0', 
+                      transition: 'height 0.5s ease',
+                      position: 'relative'
+                    }} 
+                    title={`₹${amt.toLocaleString()}`}
+                  >
+                    {amt > 0 && (
+                      <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        ₹{amt >= 1000 ? `${(amt/1000).toFixed(amt%1000===0?0:1)}k` : amt}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
             </div>
           </div>
@@ -185,6 +280,117 @@ export default function OwnerDashboard() {
               <span className="badge" style={{ background: focus.referrals > 0 ? 'var(--copper)' : 'var(--moss)', color: 'white' }}>{focus.referrals}</span>
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Bulk Invoice Administration */}
+      <div className="card card-body" style={{ marginTop: 36, background: 'linear-gradient(145deg, #fff, var(--bg))', border: '1px solid var(--border)' }}>
+        <h3 style={{ marginBottom: 8, fontSize: '1.2rem', color: 'var(--bark)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FaFileInvoiceDollar style={{ color: 'var(--copper)' }} /> Bulk Invoice Administration (Dropbox Cloud)
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+          Fetch, compile, and bulk download generated patient invoice PDFs straight from your Dropbox integration storage, or purge them synchronously.
+        </p>
+
+        {/* Dropbox Storage Usage Tracker */}
+        <div style={{ background: 'var(--bg-card)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FaBox style={{ color: 'var(--primary)' }} /> Dropbox Storage Consumption
+            </span>
+            <button 
+              type="button" 
+              className="btn btn-ghost btn-sm" 
+              style={{ fontSize: '0.75rem', padding: '2px 8px', height: 'auto', minHeight: 0 }}
+              onClick={checkDropboxUsage}
+              disabled={checkingUsage}
+            >
+              {checkingUsage ? 'Refreshing...' : 'Refresh Quota'}
+            </button>
+          </div>
+          {dropboxUsage ? (
+            <div>
+              <div style={{ width: '100%', background: '#e2e8f0', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                <div 
+                  style={{ 
+                    height: '100%', 
+                    width: `${Math.min(dropboxUsage.used_percent, 100)}%`, 
+                    background: dropboxUsage.used_percent > 85 ? 'var(--danger)' : dropboxUsage.used_percent > 60 ? 'var(--warning)' : 'var(--success)',
+                    transition: 'width 0.4s ease'
+                  }} 
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                <span>Used: <strong>{(dropboxUsage.used_bytes / (1024 * 1024)).toFixed(2)} MB</strong></span>
+                <span>Quota: <strong>{(dropboxUsage.allocated_bytes / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> ({dropboxUsage.used_percent}%)</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              {checkingUsage ? 'Interrogating Dropbox API space quota metrics...' : 'Storage statistics currently unavailable.'}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 20 }}>
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Filter by Branch</label>
+            <select 
+              className="input" 
+              value={bulkFilter.branch} 
+              onChange={e => setBulkFilter({ ...bulkFilter, branch: e.target.value })}
+              style={{ width: '100%', background: '#fff', borderColor: 'var(--border)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '0.9rem' }}
+            >
+              <option value="">All Branches</option>
+              {branchStats.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Start Date</label>
+            <input 
+              type="date" 
+              className="input" 
+              value={bulkFilter.start_date} 
+              onChange={e => setBulkFilter({ ...bulkFilter, start_date: e.target.value })}
+              style={{ width: '100%', background: '#fff', borderColor: 'var(--border)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '0.9rem' }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>End Date</label>
+            <input 
+              type="date" 
+              className="input" 
+              value={bulkFilter.end_date} 
+              onChange={e => setBulkFilter({ ...bulkFilter, end_date: e.target.value })}
+              style={{ width: '100%', background: '#fff', borderColor: 'var(--border)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '0.9rem' }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            onClick={() => handleBulkAction('download')}
+            disabled={bulkLoading}
+          >
+            <FaDownload /> {bulkLoading ? 'Compiling Archive...' : 'Bulk Download ZIP'}
+          </button>
+
+          <button 
+            type="button" 
+            className="btn" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid currentColor' }}
+            onClick={() => handleBulkAction('delete')}
+            disabled={bulkLoading}
+          >
+            <FaTrash /> Bulk Delete from Dropbox
+          </button>
         </div>
       </div>
 

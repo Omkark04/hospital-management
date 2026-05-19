@@ -5,7 +5,7 @@ import { getPatients } from '../../../api/patients';
 import { getAppointments } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
-import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt } from 'react-icons/fa';
+import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar } from 'react-icons/fa';
 import ConsultationWorkspace from './ConsultationWorkspace';
 
 function StatCard({ icon, label, value, color, link }) {
@@ -113,6 +113,7 @@ export default function DoctorDashboard() {
                 { icon: <FaUserInjured />, label: 'My Patients', to: '/dashboard/patients' },
                 { icon: <FaPrescriptionBottleAlt />, label: 'Write Rx', to: '/dashboard/prescriptions' },
                 { icon: <FaCalendarAlt />, label: 'Appointments', to: '/dashboard/appointments' },
+                { icon: <FaFileInvoiceDollar />, label: 'Billing', to: '/dashboard/billing' },
                 { icon: <FaBullhorn />, label: 'Campaigns', to: '/dashboard/my-campaigns' },
               ].map(a => (
                 <Link key={a.label} to={a.to} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', border: '1px solid var(--border)', textDecoration: 'none', alignItems: 'center', transition: 'all 0.2s' }}>
