@@ -17,6 +17,6 @@ COPY . .
 
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
-EXPOSE ${PORT:-8000}
+EXPOSE ${PORT:-8080}
 
-CMD python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000}
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 --access-logfile -"]
