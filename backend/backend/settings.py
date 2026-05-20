@@ -149,10 +149,10 @@ SIMPLE_JWT = {
 
 # ─────────────────────────── CORS ─────────────────────────────
 def _normalize_origins(raw: str) -> list:
-    """Ensure every origin has a scheme; default to https:// if missing."""
+    """Ensure every origin has a scheme and no trailing slash."""
     origins = []
     for o in raw.split(','):
-        o = o.strip()
+        o = o.strip().rstrip('/')          # strip trailing slashes first
         if o and not o.startswith(('http://', 'https://')):
             o = 'https://' + o
         if o:
