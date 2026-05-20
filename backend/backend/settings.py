@@ -117,8 +117,17 @@ USE_TZ = True
 # ─────────────────────────── Static files ─────────────────────
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django 4.2+ requires STORAGES dict instead of deprecated STATICFILES_STORAGE
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # ─────────────────────────── Django REST Framework ────────────
 REST_FRAMEWORK = {
