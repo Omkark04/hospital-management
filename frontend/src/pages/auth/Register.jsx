@@ -27,7 +27,7 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/users/register/', form);
+      await api.post('/auth/register/', form);
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
