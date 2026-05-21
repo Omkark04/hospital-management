@@ -5,6 +5,7 @@ import { getPatients } from '../../../api/patients';
 import { getAppointments } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
+import { getSlotCapacity, updateSlotCapacity } from '../../../api/branches';
 import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar } from 'react-icons/fa';
 import ConsultationWorkspace from './ConsultationWorkspace';
 
@@ -25,6 +26,10 @@ export default function DoctorDashboard() {
   const [todayAppts, setTodayAppts] = useState([]);
   const [activeConsultation, setActiveConsultation] = useState(null);
 
+  const [maxPatients, setMaxPatients] = useState(5);
+  const [capacityMsg, setCapacityMsg] = useState(null);
+  const [savingCapacity, setSavingCapacity] = useState(false);
+
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -33,7 +38,8 @@ export default function DoctorDashboard() {
       getAppointments({ date: today }),
       getPrescriptions(),
       getMyCampaigns(),
-    ]).then(([p, a, rx, c]) => {
+      getSlotCapacity(),
+    ]).then(([p, a, rx, c, cap]) => {
       setStats({
         patients: p.status === 'fulfilled' ? (p.value.data.count ?? p.value.data.length) : 0,
         appointments: a.status === 'fulfilled' ? (a.value.data.count ?? a.value.data.length) : 0,
@@ -44,8 +50,26 @@ export default function DoctorDashboard() {
         const list = a.value.data.results || a.value.data;
         setTodayAppts(Array.isArray(list) ? list.slice(0, 5) : []);
       }
+      if (cap.status === 'fulfilled') {
+        setMaxPatients(cap.value.data.max_patients_per_slot);
+      }
     });
   }, []);
+
+  const handleSaveCapacity = async (e) => {
+    e.preventDefault();
+    setSavingCapacity(true);
+    setCapacityMsg(null);
+    try {
+      const res = await updateSlotCapacity({ max_patients_per_slot: maxPatients });
+      setCapacityMsg({ type: 'success', text: 'Slot capacity updated successfully.' });
+      setTimeout(() => setCapacityMsg(null), 4000);
+    } catch (err) {
+      setCapacityMsg({ type: 'error', text: err.response?.data?.detail || 'Failed to update capacity.' });
+    } finally {
+      setSavingCapacity(false);
+    }
+  };
 
   return (
     <div>
@@ -122,6 +146,45 @@ export default function DoctorDashboard() {
                 </Link>
               ))}
             </div>
+          </div>
+
+          <div className="card card-body">
+            <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}><FaClock /> Appointment Slot Settings</h4>
+            <form onSubmit={handleSaveCapacity}>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                  Max Patients Per 1-Hour Time Slot:
+                </label>
+                <input 
+                  type="number"
+                  min="1"
+                  className="form-control"
+                  value={maxPatients}
+                  onChange={(e) => setMaxPatients(parseInt(e.target.value) || 1)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6 }}
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={savingCapacity}
+                style={{ width: '100%', padding: '10px 16px', fontWeight: 600 }}
+              >
+                {savingCapacity ? 'Saving...' : 'Save Settings'}
+              </button>
+              {capacityMsg && (
+                <div style={{ 
+                  marginTop: 10, 
+                  padding: '8px 12px', 
+                  borderRadius: 6, 
+                  fontSize: '0.85rem',
+                  background: capacityMsg.type === 'success' ? '#e6f4ea' : '#fce8e6',
+                  color: capacityMsg.type === 'success' ? '#137333' : '#c5221f'
+                }}>
+                  {capacityMsg.text}
+                </div>
+              )}
+            </form>
           </div>
 
           <div className="card">

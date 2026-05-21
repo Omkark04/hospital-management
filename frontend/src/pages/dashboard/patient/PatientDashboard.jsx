@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getMyProfile, getAppointments } from '../../../api/patients';
 import { getMyBills } from '../../../api/billing';
-import { FaUserCircle, FaCalendarAlt, FaFileInvoiceDollar, FaClock, FaHeartbeat } from 'react-icons/fa';
+import { FaCalendarAlt, FaFileInvoiceDollar, FaClock, FaLink } from 'react-icons/fa';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -25,31 +25,11 @@ export default function PatientDashboard() {
   return (
     <div>
       <div style={{ marginBottom: 32 }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          Hello, {user?.full_name?.split(' ')[0] || 'Patient'} <FaHeartbeat style={{ color: 'var(--danger)' }} />
-        </h2>
+        <h2>Hello, {user?.full_name?.split(' ')[0] || 'Patient'}</h2>
         <p style={{ color: 'var(--text-muted)', marginTop: 6 }}>Your personal health portal.</p>
       </div>
 
-      {/* Profile summary */}
-      {profile && (
-        <div className="card card-body" style={{ marginBottom: 28, display: 'flex', gap: 24, alignItems: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, color: 'white', flexShrink: 0 }}>
-            {profile.first_name?.charAt(0)}
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ marginBottom: 4 }}>{profile.first_name} {profile.last_name}</h3>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>UHID: {profile.uhid}</span>
-              {profile.blood_group && <span className="badge badge-danger">{profile.blood_group}</span>}
-              {profile.gender && <span className="badge badge-info">{profile.gender}</span>}
-            </div>
-          </div>
-          <Link to="/dashboard/profile" className="btn btn-ghost btn-sm">Edit Profile</Link>
-        </div>
-      )}
-
-      <div className="stats-grid" style={{ marginBottom: 36 }}>
+      <div className="stats-grid" style={{ marginBottom: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
         <div className="stat-card cyan">
           <div className="stat-icon" style={{ background: 'var(--primary-bg)' }}><FaCalendarAlt /></div>
           <div className="stat-label">Appointments</div>
@@ -61,6 +41,12 @@ export default function PatientDashboard() {
           <div className="stat-label">Pending Bills</div>
           <div className="stat-value">₹{pendingAmount.toFixed(0)}</div>
           <Link to="/dashboard/my-bills" style={{ fontSize: '0.8rem', color: 'var(--warning)', marginTop: 8, display: 'block' }}>View →</Link>
+        </div>
+        <div className="stat-card green" style={{ background: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.12)' }}>
+          <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.08)', color: 'var(--success)' }}><FaLink /></div>
+          <div className="stat-label">Refer a Friend</div>
+          <div className="stat-value" style={{ fontSize: '1.2rem', color: 'var(--success)', marginTop: 4 }}>Help someone get care</div>
+          <Link to="/dashboard/referral" style={{ fontSize: '0.8rem', color: 'var(--success)', marginTop: 8, display: 'block' }}>Refer now →</Link>
         </div>
       </div>
 

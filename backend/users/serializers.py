@@ -150,6 +150,20 @@ class PatientRegisterSerializer(serializers.ModelSerializer):
         user.role = UserRole.PATIENT
         user.set_password(password)
         user.save()
+
+        # Create corresponding Patient record
+        from patients.models import Patient
+        from branches.models import Branch
+        default_branch = Branch.objects.first()
+        if default_branch:
+            Patient.objects.create(
+                branch=default_branch,
+                registered_by=user,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                phone=user.phone,
+                email=user.email or ""
+            )
         return user
 
 

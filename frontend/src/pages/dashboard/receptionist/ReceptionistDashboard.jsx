@@ -4,9 +4,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { getPatients, getAppointments } from '../../../api/patients';
 import { getBills } from '../../../api/billing';
 import { getLeaves } from '../../../api/hr';
+import { getSlotCapacity, updateSlotCapacity } from '../../../api/branches';
 import { 
   FaUserInjured, FaCalendarAlt, FaFileInvoiceDollar, FaEdit, 
-  FaPlusCircle, FaCheckCircle, FaLink, FaFolderOpen, FaBolt 
+  FaPlusCircle, FaCheckCircle, FaLink, FaFolderOpen, FaBolt, FaClock 
 } from 'react-icons/fa';
 
 function StatCard({ icon, label, value, color, link }) {
@@ -25,6 +26,10 @@ export default function ReceptionistDashboard() {
   const [stats, setStats] = useState({});
   const [pendingLeaves, setPendingLeaves] = useState([]);
 
+  const [maxPatients, setMaxPatients] = useState(5);
+  const [capacityMsg, setCapacityMsg] = useState(null);
+  const [savingCapacity, setSavingCapacity] = useState(false);
+
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -33,7 +38,8 @@ export default function ReceptionistDashboard() {
       getAppointments({ date: today }),
       getBills({ status: 'pending' }),
       getLeaves({ status: 'pending' }),
-    ]).then(([p, a, b, l]) => {
+      getSlotCapacity(),
+    ]).then(([p, a, b, l, cap]) => {
       setStats({
         patients: p.status === 'fulfilled' ? (p.value.data.count ?? p.value.data.length) : 0,
         appointments: a.status === 'fulfilled' ? (a.value.data.count ?? a.value.data.length) : 0,
@@ -43,8 +49,26 @@ export default function ReceptionistDashboard() {
       if (l.status === 'fulfilled') {
         setPendingLeaves((l.value.data.results || l.value.data).slice(0, 4));
       }
+      if (cap.status === 'fulfilled') {
+        setMaxPatients(cap.value.data.max_patients_per_slot);
+      }
     });
   }, []);
+
+  const handleSaveCapacity = async (e) => {
+    e.preventDefault();
+    setSavingCapacity(true);
+    setCapacityMsg(null);
+    try {
+      const res = await updateSlotCapacity({ max_patients_per_slot: maxPatients });
+      setCapacityMsg({ type: 'success', text: 'Slot capacity updated successfully.' });
+      setTimeout(() => setCapacityMsg(null), 4000);
+    } catch (err) {
+      setCapacityMsg({ type: 'error', text: err.response?.data?.detail || 'Failed to update capacity.' });
+    } finally {
+      setSavingCapacity(false);
+    }
+  };
 
   return (
     <div>
@@ -83,6 +107,47 @@ export default function ReceptionistDashboard() {
               </Link>
             ))}
           </div>
+        </div>
+
+        <div className="card card-body">
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FaClock /> Appointment Slot Settings
+          </h4>
+          <form onSubmit={handleSaveCapacity}>
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Max Patients Per 1-Hour Time Slot:
+              </label>
+              <input 
+                type="number"
+                min="1"
+                className="form-control"
+                value={maxPatients}
+                onChange={(e) => setMaxPatients(parseInt(e.target.value) || 1)}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6 }}
+              />
+            </div>
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={savingCapacity}
+              style={{ width: '100%', padding: '10px 16px', fontWeight: 600 }}
+            >
+              {savingCapacity ? 'Saving...' : 'Save Settings'}
+            </button>
+            {capacityMsg && (
+              <div style={{ 
+                marginTop: 10, 
+                padding: '8px 12px', 
+                borderRadius: 6, 
+                fontSize: '0.85rem',
+                background: capacityMsg.type === 'success' ? '#e6f4ea' : '#fce8e6',
+                color: capacityMsg.type === 'success' ? '#137333' : '#c5221f'
+              }}>
+                {capacityMsg.text}
+              </div>
+            )}
+          </form>
         </div>
 
         {/* Pending leaves */}

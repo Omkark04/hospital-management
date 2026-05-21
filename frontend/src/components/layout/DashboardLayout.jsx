@@ -23,13 +23,15 @@ const pageTitles = {
   '/dashboard/referrals': { title: 'Referrals', desc: 'View referral submissions.' },
   '/dashboard/notifications': { title: 'Notifications', desc: 'View sent notifications.' },
   '/dashboard/my-appointments': { title: 'My Appointments', desc: 'View and manage your appointments.' },
-  '/dashboard/my-records': { title: 'Medical Records', desc: 'Your health history and reports.' },
+  '/dashboard/my-records': { title: 'Medical Records', desc: 'Your prescriptions and treatment history.' },
+
   '/dashboard/my-bills': { title: 'My Bills', desc: 'View your billing statements.' },
   '/dashboard/my-attendance': { title: 'My Attendance', desc: 'Your attendance records.' },
   '/dashboard/my-leaves': { title: 'My Leaves', desc: 'Your leave applications.' },
   '/dashboard/my-campaigns': { title: 'My Campaigns', desc: 'Campaigns you manage.' },
   '/dashboard/profile': { title: 'My Profile', desc: 'View and update your profile.' },
-  '/dashboard/referral': { title: 'Refer a Friend', desc: 'Submit a new referral.' },
+  '/dashboard/referral': { title: 'Refer a Friend', desc: 'Know someone who needs care? Refer them here.' },
+
 };
 
 export default function DashboardLayout() {

@@ -182,29 +182,65 @@ export default function BookAppointment() {
                             No slots available on this date. Please choose another date.
                           </div>
                         ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
-                            {availableSlots.map(slot => (
-                              <div 
-                                key={slot.time}
-                                onClick={() => setForm(f => ({ ...f, scheduled_time: slot.time }))}
-                                style={{
-                                  padding: '12px',
-                                  textAlign: 'center',
-                                  borderRadius: 8,
-                                  cursor: 'pointer',
-                                  border: form.scheduled_time === slot.time ? '2px solid var(--moss)' : '1px solid var(--border)',
-                                  background: form.scheduled_time === slot.time ? 'rgba(5, 150, 105, 0.05)' : '#fff',
-                                  transition: 'all 0.2s'
-                                }}
-                              >
-                                <div style={{ fontWeight: 600, color: form.scheduled_time === slot.time ? 'var(--moss)' : 'var(--navy)' }}>
-                                  {slot.time.slice(0, 5)}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+                            {availableSlots.map(slot => {
+                              const isSelected = form.scheduled_time === slot.time;
+                              const isFull = slot.available_capacity <= 0;
+                              return (
+                                <div 
+                                  key={slot.time}
+                                  onClick={() => !isFull && setForm(f => ({ ...f, scheduled_time: slot.time }))}
+                                  style={{
+                                    padding: '16px',
+                                    borderRadius: 12,
+                                    cursor: isFull ? 'not-allowed' : 'pointer',
+                                    border: isSelected 
+                                      ? '2px solid var(--moss)' 
+                                      : isFull 
+                                        ? '1px dashed var(--border)' 
+                                        : '1px solid var(--border)',
+                                    background: isSelected 
+                                      ? 'rgba(5, 150, 105, 0.05)' 
+                                      : isFull 
+                                        ? '#fafafa' 
+                                        : '#fff',
+                                    opacity: isFull ? 0.6 : 1,
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 6,
+                                    boxShadow: isSelected ? '0 4px 12px rgba(5, 150, 105, 0.08)' : 'none'
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: isSelected ? 'var(--moss)' : isFull ? 'var(--text-muted)' : 'var(--navy)' }}>
+                                    {slot.label}
+                                  </div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                                    <span>{slot.day}</span>
+                                    <span>{slot.date}</span>
+                                  </div>
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center', 
+                                    marginTop: 8, 
+                                    paddingTop: 8, 
+                                    borderTop: '1px solid var(--border)',
+                                    fontSize: '0.8rem' 
+                                  }}>
+                                    <span style={{ color: 'var(--text-secondary)' }}>
+                                      {slot.patient_count} Patients Booked
+                                    </span>
+                                    <span style={{ 
+                                      fontWeight: 600, 
+                                      color: isFull ? 'var(--danger)' : 'var(--success)'
+                                    }}>
+                                      {isFull ? 'Full' : `${slot.available_capacity} Left`}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                                  {slot.available_capacity} slots left
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

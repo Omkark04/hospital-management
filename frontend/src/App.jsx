@@ -54,6 +54,8 @@ const ProfilePage     = lazy(() => import('./pages/dashboard/shared/ProfilePage'
 const MyCampaigns     = lazy(() => import('./pages/dashboard/shared/MyCampaigns'));
 const ReviewManage    = lazy(() => import('./pages/dashboard/owner/ReviewManage'));
 const MyBills         = lazy(() => import('./pages/dashboard/patient/MyBills'));
+const PatientReferral = lazy(() => import('./pages/dashboard/patient/PatientReferral'));
+
 const MyAttendance    = lazy(() => import('./pages/dashboard/employee/MyAttendance'));
 const MyLeaves        = lazy(() => import('./pages/dashboard/employee/MyLeaves'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
@@ -125,9 +127,11 @@ export default function App() {
 
               {/* Patient */}
               <Route path="my-appointments" element={<AppointmentList />} />
-              <Route path="my-records" element={<PatientList />} />
+              <Route path="my-records" element={<PrescriptionList />} />
+
               <Route path="my-bills" element={<MyBills />} />
-              <Route path="referral" element={<Referral />} />
+              <Route path="referral" element={<PatientReferral />} />
+
 
               {/* Employee */}
               <Route path="my-attendance" element={<MyAttendance />} />

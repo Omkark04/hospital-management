@@ -83,25 +83,45 @@ class MedicineDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PrescriptionListCreateView(generics.ListCreateAPIView):
     serializer_class = PrescriptionSerializer
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        user = self.request.user
+        # Patients see only their own prescriptions (matched via phone)
+        if user.role == UserRole.PATIENT:
+            from patients.models import Patient
+            patient = Patient.objects.filter(phone=user.phone, is_active=True).first()
+            if patient:
+                return Prescription.objects.filter(patient=patient)
+            return Prescription.objects.none()
+        # Doctors see prescriptions they wrote
         patient_id = self.request.query_params.get('patient')
-        qs = Prescription.objects.filter(doctor=self.request.user)
+        qs = Prescription.objects.filter(doctor=user)
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
         return qs
 
     def perform_create(self, serializer):
+        # Only doctors can create prescriptions
+        if self.request.user.role != UserRole.DOCTOR:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only doctors can create prescriptions.')
         serializer.save(doctor=self.request.user)
 
 
 class PrescriptionDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = PrescriptionSerializer
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Prescription.objects.filter(doctor=self.request.user)
+        user = self.request.user
+        if user.role == UserRole.PATIENT:
+            from patients.models import Patient
+            patient = Patient.objects.filter(phone=user.phone, is_active=True).first()
+            if patient:
+                return Prescription.objects.filter(patient=patient)
+            return Prescription.objects.none()
+        return Prescription.objects.filter(doctor=user)
 
 # ─────────────────── Inventory & Ledger ───────────────────
 class LowStockMedicineView(generics.ListAPIView):

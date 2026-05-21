@@ -18,7 +18,7 @@ class BranchSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'hospital', 'hospital_name', 'name', 'address', 'phone', 'email',
             'latitude', 'longitude', 'attendance_radius_meters',
-            'shift_start_time', 'shift_end_time',
+            'shift_start_time', 'shift_end_time', 'max_patients_per_slot',
             'is_active', 'services', 'created_at'
         )
         read_only_fields = ('id', 'created_at')
@@ -27,7 +27,7 @@ class BranchSerializer(serializers.ModelSerializer):
 class BranchMinimalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Branch
-        fields = ('id', 'name', 'address', 'phone', 'shift_start_time', 'shift_end_time', 'is_active')
+        fields = ('id', 'name', 'address', 'phone', 'shift_start_time', 'shift_end_time', 'max_patients_per_slot', 'is_active')
 
 
 class HospitalSerializer(serializers.ModelSerializer):

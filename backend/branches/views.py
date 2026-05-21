@@ -153,3 +153,43 @@ class ResolveMapLinkView(APIView):
             return Response({'error': 'Could not extract coordinates from expanded link.', 'resolved_url': final_url}, status=400)
         except Exception as e:
             return Response({'error': f'Failed to resolve map link: {str(e)}'}, status=400)
+
+
+class BranchSlotCapacityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not user.branch:
+            return Response({'detail': 'User is not assigned to any branch.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'branch_id': user.branch.id,
+            'branch_name': user.branch.name,
+            'max_patients_per_slot': user.branch.max_patients_per_slot
+        })
+
+    def post(self, request):
+        user = request.user
+        if not user.branch:
+            return Response({'detail': 'User is not assigned to any branch.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.role not in ['doctor', 'receptionist', 'owner']:
+            return Response({'detail': 'Only doctors, receptionists, or owners can update slot capacity.'}, status=status.HTTP_403_FORBIDDEN)
+
+        val = request.data.get('max_patients_per_slot')
+        if val is None:
+            return Response({'detail': 'max_patients_per_slot field is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            val = int(val)
+            if val < 1:
+                raise ValueError()
+        except ValueError:
+            return Response({'detail': 'max_patients_per_slot must be a positive integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        branch = user.branch
+        branch.max_patients_per_slot = val
+        branch.save()
+        return Response({
+            'detail': 'Slot capacity updated successfully.',
+            'max_patients_per_slot': branch.max_patients_per_slot
+        })

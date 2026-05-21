@@ -4,6 +4,7 @@ import { getMedicines, createPrescription } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
 import { createBill } from '../../../api/billing';
 import { createAppointment } from '../../../api/patients';
+import api from '../../../api/axios';
 
 export default function ConsultationWorkspace({ appointment, onClose }) {
   const [activeTab, setActiveTab] = useState('prescription');
@@ -22,6 +23,9 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
   const [aptForm, setAptForm] = useState({ date: '', time: '', reason: 'Follow-up' });
   const [aptSaved, setAptSaved] = useState(false);
 
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -34,6 +38,23 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
       setProducts(p.data.results || p.data);
     });
   }, [appointment.branch]);
+
+  useEffect(() => {
+    if (aptForm.date && appointment.branch) {
+      setLoadingSlots(true);
+      api.get(`/patients/public/available-slots/?date=${aptForm.date}&branch=${appointment.branch}`)
+        .then(res => {
+          setAvailableSlots(res.data.slots || []);
+        })
+        .catch(err => {
+          console.error(err);
+          setAvailableSlots([]);
+        })
+        .finally(() => setLoadingSlots(false));
+    } else {
+      setAvailableSlots([]);
+    }
+  }, [aptForm.date, appointment.branch]);
 
   // -- Prescription Logic --
   const addRxItem = () => setRxForm(p => ({ ...p, items: [...p.items, { item_id: '', type: '', dosage: '', duration: '', instructions: '', quantity: 1 }] }));
@@ -107,6 +128,10 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
   // -- Appointment Logic --
   const handleSaveApt = async (e) => {
     e.preventDefault();
+    if (!aptForm.time) {
+      alert("Please select an available follow-up slot.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -280,16 +305,83 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
               {aptSaved && <div className="alert alert-success" style={{ marginBottom: 16 }}>Follow-up appointment booked successfully!</div>}
               <h4 style={{ marginBottom: 16 }}>Schedule Follow-up</h4>
               
-              <div className="quick-actions-grid">
-                <div className="form-group">
-                  <label className="form-label">Date</label>
-                  <input type="date" className="input" required value={aptForm.date} onChange={e => setAptForm({...aptForm, date: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Time</label>
-                  <input type="time" className="input" required value={aptForm.time} onChange={e => setAptForm({...aptForm, time: e.target.value})} />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input type="date" className="input" required value={aptForm.date} onChange={e => setAptForm({...aptForm, date: e.target.value, time: ''})} />
               </div>
+
+              {aptForm.date && (
+                <div className="form-group" style={{ marginTop: 14 }}>
+                  <label className="form-label">Available Slots</label>
+                  {loadingSlots ? (
+                    <div style={{ padding: 10, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Checking availability...</div>
+                  ) : availableSlots.length === 0 ? (
+                    <div style={{ padding: 10, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--off-white)', borderRadius: 8, fontSize: '0.85rem' }}>
+                      No slots available on this date. Please choose another date.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, maxHeight: '200px', overflowY: 'auto', padding: '4px' }}>
+                      {availableSlots.map(slot => {
+                        const isSelected = aptForm.time === slot.time;
+                        const isFull = slot.available_capacity <= 0;
+                        return (
+                          <div 
+                            key={slot.time}
+                            onClick={() => !isFull && setAptForm(f => ({ ...f, time: slot.time }))}
+                            style={{
+                              padding: '10px',
+                              borderRadius: 8,
+                              cursor: isFull ? 'not-allowed' : 'pointer',
+                              border: isSelected 
+                                ? '2px solid var(--moss)' 
+                                : isFull 
+                                  ? '1px dashed var(--border)' 
+                                  : '1px solid var(--border)',
+                              background: isSelected 
+                                ? 'rgba(5, 150, 105, 0.05)' 
+                                : isFull 
+                                  ? '#fafafa' 
+                                  : '#fff',
+                              opacity: isFull ? 0.6 : 1,
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 4
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? 'var(--moss)' : isFull ? 'var(--text-muted)' : 'var(--navy)' }}>
+                              {slot.label}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{slot.day}</span>
+                              <span>{slot.date}</span>
+                            </div>
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center', 
+                              marginTop: 4, 
+                              paddingTop: 4, 
+                              borderTop: '1px solid var(--border)',
+                              fontSize: '0.75rem' 
+                            }}>
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {slot.patient_count} Booked
+                              </span>
+                              <span style={{ 
+                                fontWeight: 600, 
+                                color: isFull ? 'var(--danger)' : 'var(--success)'
+                              }}>
+                                {isFull ? 'Full' : `${slot.available_capacity} Left`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Reason / Notes</label>

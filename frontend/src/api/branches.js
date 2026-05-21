@@ -16,3 +16,6 @@ export const createBranchService = (branchId, data) => api.post(`/branches/${bra
 export const updateBranchService = (id, data) => api.put(`/branches/services/${id}/`, data);
 
 export const resolveMapLink = (url) => api.post('/branches/resolve-map-link/', { url });
+
+export const getSlotCapacity = () => api.get('/branches/slot-capacity/');
+export const updateSlotCapacity = (data) => api.post('/branches/slot-capacity/', data);

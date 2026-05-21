@@ -36,6 +36,7 @@ class Branch(models.Model):
     attendance_radius_meters = models.IntegerField(default=50)
     shift_start_time = models.TimeField(default='09:00:00')
     shift_end_time = models.TimeField(default='17:00:00')
+    max_patients_per_slot = models.IntegerField(default=5)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -88,9 +88,22 @@ class MyPatientProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsPatient]
 
     def get_object(self):
-        return Patient.objects.filter(
+        patient = Patient.objects.filter(
             phone=self.request.user.phone, is_active=True
         ).first()
+        if not patient:
+            from branches.models import Branch
+            default_branch = Branch.objects.first()
+            if default_branch:
+                patient = Patient.objects.create(
+                    branch=default_branch,
+                    registered_by=self.request.user,
+                    first_name=self.request.user.first_name,
+                    last_name=self.request.user.last_name,
+                    phone=self.request.user.phone,
+                    email=self.request.user.email or "",
+                )
+        return patient
 
 
 # ─────────────────── Appointments ────────────────────────────
@@ -210,7 +223,15 @@ class PublicAvailableSlotsView(APIView):
 
         branch_id = request.query_params.get('branch')
         
-        MAX_CAPACITY = 5
+        max_capacity = 5
+        if branch_id:
+            try:
+                from branches.models import Branch
+                branch = Branch.objects.get(id=branch_id)
+                max_capacity = getattr(branch, 'max_patients_per_slot', 5)
+            except Branch.DoesNotExist:
+                pass
+        
         slots = []
         for hour in range(9, 19):
             slot_time = f"{hour:02d}:00:00"
@@ -224,12 +245,31 @@ class PublicAvailableSlotsView(APIView):
                 qs = qs.filter(branch_id=branch_id)
                 
             booked_count = qs.count()
+            available_capacity = max(0, max_capacity - booked_count)
             
-            if booked_count < MAX_CAPACITY:
-                slots.append({
-                    'time': f"{hour:02d}:00",
-                    'available_capacity': MAX_CAPACITY - booked_count
-                })
+            # Format time labels nicely, e.g., 09:00 AM - 10:00 AM
+            am_pm = "AM" if hour < 12 else "PM"
+            display_hour = hour if hour <= 12 else hour - 12
+            if display_hour == 0:
+                display_hour = 12
+            
+            next_hour = hour + 1
+            next_am_pm = "AM" if next_hour < 12 else "PM"
+            display_next_hour = next_hour if next_hour <= 12 else next_hour - 12
+            if display_next_hour == 0:
+                display_next_hour = 12
+                
+            time_label = f"{display_hour:02d}:00 {am_pm} - {display_next_hour:02d}:00 {next_am_pm}"
+            
+            slots.append({
+                'time': f"{hour:02d}:00",
+                'label': time_label,
+                'date': target_date_str,
+                'day': target_date.strftime('%A'),
+                'patient_count': booked_count,
+                'available_capacity': available_capacity,
+                'max_capacity': max_capacity
+            })
                 
         return Response({'slots': slots})
 
