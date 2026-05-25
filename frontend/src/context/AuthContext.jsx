@@ -12,7 +12,16 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('access_token');
     if (token) {
       getProfile()
-        .then(({ data }) => setUser(data))
+        .then(({ data }) => setUser({
+          id: data.id,
+          username: data.username,
+          full_name: data.full_name,
+          role: data.role,
+          // getProfile returns 'branch' (FK int), login returns 'branch_id'
+          // Normalize to always use branch_id
+          branch_id: data.branch_id ?? data.branch ?? null,
+          branch_name: data.branch_name ?? null,
+        }))
         .catch(() => {
           localStorage.clear();
           setUser(null);
@@ -47,7 +56,14 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(async () => {
     const { data } = await getProfile();
-    setUser(data);
+    setUser({
+      id: data.id,
+      username: data.username,
+      full_name: data.full_name,
+      role: data.role,
+      branch_id: data.branch_id ?? data.branch ?? null,
+      branch_name: data.branch_name ?? null,
+    });
   }, []);
 
   return (

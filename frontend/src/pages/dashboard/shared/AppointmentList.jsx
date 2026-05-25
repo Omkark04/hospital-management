@@ -25,6 +25,17 @@ export default function AppointmentList() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  useEffect(() => {
+    if (user?.branch_id) {
+      setForm(prev => {
+        if (!prev.branch) {
+          return { ...prev, branch: user.branch_id };
+        }
+        return prev;
+      });
+    }
+  }, [user?.branch_id]);
+
   // For patient role: load their own patient record ID
   useEffect(() => {
     if (isPatient) {
@@ -235,7 +246,7 @@ export default function AppointmentList() {
                         setForm(prev => ({
                           ...prev,
                           patient: pId,
-                          branch: selectedPatient?.branch || prev.branch
+                          branch: user?.branch_id || selectedPatient?.branch || prev.branch
                         }));
                       }}
                     >
@@ -252,6 +263,7 @@ export default function AppointmentList() {
                     required
                     value={form.branch}
                     onChange={e => setForm(p => ({ ...p, branch: e.target.value, scheduled_time: '' }))}
+                    disabled={!!user?.branch_id}
                   >
                     <option value="">Select Branch...</option>
                     {branches.map(b => (

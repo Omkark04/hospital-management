@@ -71,7 +71,20 @@ class PatientListCreateView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(registered_by=self.request.user)
+        user = self.request.user
+        # Auto-assign branch from the logged-in user if not provided in payload.
+        # This prevents 400 errors when frontend omits branch (e.g., after page reload).
+        branch = None
+        if user.branch_id:
+            from branches.models import Branch
+            try:
+                branch = Branch.objects.get(pk=user.branch_id)
+            except Branch.DoesNotExist:
+                pass
+        if branch:
+            serializer.save(registered_by=user, branch=branch)
+        else:
+            serializer.save(registered_by=user)
 
 
 class PatientDetailView(generics.RetrieveUpdateAPIView):

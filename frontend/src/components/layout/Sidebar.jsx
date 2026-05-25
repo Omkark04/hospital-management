@@ -6,7 +6,7 @@ import {
   FaCommentAlt, FaLink, FaStar, FaBell, FaUserCircle, FaUserInjured, 
   FaCalendarAlt, FaPrescriptionBottleAlt, FaPlusCircle, FaFileInvoiceDollar, 
   FaCheckCircle, FaEdit, FaClipboardList, FaChartLine, FaPhoneAlt, FaQrcode, FaCamera,
-  FaMoneyBillWave
+  FaMoneyBillWave, FaUserPlus
 } from 'react-icons/fa';
 
 const roleMenus = {
@@ -37,6 +37,7 @@ const roleMenus = {
     { section: 'Overview' },
     { to: '/dashboard', label: 'Dashboard', icon: <FaChartBar />, end: true },
     { section: 'Clinical' },
+    { to: '/dashboard/patients/register', label: 'Register Patient', icon: <FaUserPlus /> },
     { to: '/dashboard/patients', label: 'Patients', icon: <FaUserInjured /> },
     { to: '/dashboard/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
     { to: '/dashboard/prescriptions', label: 'Prescriptions', icon: <FaPrescriptionBottleAlt /> },

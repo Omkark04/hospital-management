@@ -6,7 +6,7 @@ import { getAppointments } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
 import { getSlotCapacity, updateSlotCapacity } from '../../../api/branches';
-import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar, FaUserPlus } from 'react-icons/fa';
 import ConsultationWorkspace from './ConsultationWorkspace';
 
 function StatCard({ icon, label, value, color, link }) {
@@ -134,6 +134,7 @@ export default function DoctorDashboard() {
             <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}><FaBolt /> Quick Actions</h4>
             <div className="quick-actions-grid">
               {[
+                { icon: <FaUserPlus />, label: 'Register Patient', to: '/dashboard/patients/register' },
                 { icon: <FaUserInjured />, label: 'My Patients', to: '/dashboard/patients' },
                 { icon: <FaPrescriptionBottleAlt />, label: 'Write Rx', to: '/dashboard/prescriptions' },
                 { icon: <FaCalendarAlt />, label: 'Appointments', to: '/dashboard/appointments' },

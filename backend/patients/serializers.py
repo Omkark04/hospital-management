@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Patient, Appointment, VisitNote, LabReport, Department, Treatment
+from branches.models import Branch
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,6 +42,12 @@ class PatientDetailSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     primary_department_name = serializers.CharField(source='primary_department.name', read_only=True)
     interested_treatment_name = serializers.CharField(source='interested_treatment.name', read_only=True)
+    # branch is set server-side in perform_create from request.user — not required from client
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Patient

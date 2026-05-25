@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaPrescriptionBottleAlt, FaFileInvoice, FaNotesMedical, FaSave, FaCheck, FaCalendarPlus } from 'react-icons/fa';
+import { FaTimes, FaPrescriptionBottleAlt, FaFileInvoice, FaNotesMedical, FaSave, FaCheck, FaCalendarPlus, FaWhatsapp } from 'react-icons/fa';
 import { getMedicines, createPrescription } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
-import { createBill } from '../../../api/billing';
+import { createBill, updatePayment } from '../../../api/billing';
 import { createAppointment } from '../../../api/patients';
 import api from '../../../api/axios';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function ConsultationWorkspace({ appointment, onClose }) {
+  const { user } = useAuth();
+  const branchId = appointment.branch || user?.branch_id;
   const [activeTab, setActiveTab] = useState('prescription');
   const [medicines, setMedicines] = useState([]);
   const [products, setProducts] = useState([]);
@@ -18,6 +21,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
   // Billing State
   const [billForm, setBillForm] = useState({ payment_method: 'cash', discount: 0, notes: '', items: [{ description: 'Consultation Fee', unit_price: 500, quantity: 1 }] });
   const [billSaved, setBillSaved] = useState(false);
+  const [createdBill, setCreatedBill] = useState(null);
 
   // Follow-up State
   const [aptForm, setAptForm] = useState({ date: '', time: '', reason: 'Follow-up' });
@@ -29,20 +33,21 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const branchId = appointment.branch;
-    Promise.all([
-      getMedicines({ branch: branchId }), 
-      getPrescriptionProducts({ branch: branchId })
-    ]).then(([m, p]) => {
-      setMedicines(m.data.results || m.data);
-      setProducts(p.data.results || p.data);
-    });
-  }, [appointment.branch]);
+    if (branchId) {
+      Promise.all([
+        getMedicines({ branch: branchId }), 
+        getPrescriptionProducts({ branch: branchId })
+      ]).then(([m, p]) => {
+        setMedicines(m.data.results || m.data);
+        setProducts(p.data.results || p.data);
+      });
+    }
+  }, [branchId]);
 
   useEffect(() => {
-    if (aptForm.date && appointment.branch) {
+    if (aptForm.date && branchId) {
       setLoadingSlots(true);
-      api.get(`/patients/public/available-slots/?date=${aptForm.date}&branch=${appointment.branch}`)
+      api.get(`/patients/public/available-slots/?date=${aptForm.date}&branch=${branchId}`)
         .then(res => {
           setAvailableSlots(res.data.slots || []);
         })
@@ -54,7 +59,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
     } else {
       setAvailableSlots([]);
     }
-  }, [aptForm.date, appointment.branch]);
+  }, [aptForm.date, branchId]);
 
   // -- Prescription Logic --
   const addRxItem = () => setRxForm(p => ({ ...p, items: [...p.items, { item_id: '', type: '', dosage: '', duration: '', instructions: '', quantity: 1 }] }));
@@ -110,19 +115,56 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
     try {
       const payload = {
         patient: appointment.patient,
-        branch: appointment.branch || '', // Will fallback to patient's branch in backend if empty
+        branch: branchId || '', // Will fallback to patient's branch in backend if empty
         payment_method: billForm.payment_method,
         discount: billForm.discount,
         notes: billForm.notes,
         items: billForm.items
       };
-      await createBill(payload);
+      const res = await createBill(payload);
+      let newBill = res.data;
+
+      const subtotal = billForm.items.reduce((acc, it) => acc + (it.unit_price * it.quantity), 0);
+      const finalTotal = subtotal - billForm.discount;
+      if (finalTotal > 0) {
+        const updateRes = await updatePayment(newBill.id, { 
+          paid_amount: finalTotal, 
+          payment_method: billForm.payment_method 
+        });
+        newBill = updateRes.data;
+      }
+      setCreatedBill(newBill);
       setBillSaved(true);
-      if (aptSaved) setTimeout(onClose, 1500);
-      else setActiveTab('appointment');
     } catch (err) {
       alert('Failed to generate bill');
     } finally { setSaving(false); }
+  };
+
+  const handleDirectInvoiceDownload = async (bill) => {
+    try {
+      const res = await api.get(`/billing/${bill.id}/pdf/`, { 
+        params: { download: 'true' }, 
+        responseType: 'blob',
+        timeout: 0 
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Invoice_${bill.id}_${bill.patient_uhid || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error downloading binary invoice file directly.');
+    }
+  };
+
+  const sendWhatsApp = (bill) => {
+    const text = `Hello ${bill.patient_name}, your bill #${bill.id} for ₹${bill.total_amount} from Dr. SPINE & नस is ready.%0A%0APlease download it here: ${bill.pdf_url || '(Processing... please refresh)'}%0A%0AThank you!`;
+    const url = `https://wa.me/91${bill.patient_phone || ''}?text=${text}`;
+    window.open(url, '_blank');
   };
 
   // -- Appointment Logic --
@@ -136,7 +178,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
     try {
       const payload = {
         patient: appointment.patient,
-        branch: appointment.branch,
+        branch: branchId,
         doctor: appointment.doctor,
         scheduled_date: aptForm.date,
         scheduled_time: aptForm.time,
@@ -294,9 +336,20 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                 </select>
               </div>
 
-              <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving || billSaved}>
-                <FaFileInvoice /> {saving ? 'Processing...' : 'Generate Bill'}
-              </button>
+              {!billSaved ? (
+                <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving}>
+                  <FaFileInvoice /> {saving ? 'Processing...' : 'Generate & Pay Bill'}
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} onClick={() => handleDirectInvoiceDownload(createdBill)}>
+                    <FaFileInvoice /> Download Bill
+                  </button>
+                  <button type="button" className="btn" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, background: '#25D366', color: 'white', border: 'none' }} onClick={() => sendWhatsApp(createdBill)}>
+                    <FaWhatsapp size={20} /> Send via WhatsApp
+                  </button>
+                </div>
+              )}
             </form>
           )}
 
