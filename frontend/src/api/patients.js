@@ -16,7 +16,7 @@ export const getTreatments = (departmentId) => api.get('/patients/treatments/', 
 
 export const getAppointments = (params) => api.get('/patients/appointments/', { params });
 export const createAppointment = (data) => api.post('/patients/appointments/', data);
-export const updateAppointment = (id, data) => api.put(`/patients/appointments/${id}/`, data);
+export const updateAppointment = (id, data) => api.patch(`/patients/appointments/${id}/`, data);
 
 export const getVisitNotes = (patientId) => api.get(`/patients/${patientId}/visit-notes/`);
 export const createVisitNote = (patientId, data) => api.post(`/patients/${patientId}/visit-notes/`, data);

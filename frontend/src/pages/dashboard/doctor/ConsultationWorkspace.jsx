@@ -138,7 +138,8 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
         patient: appointment.patient,
         branch: appointment.branch,
         doctor: appointment.doctor,
-        scheduled_time: `${aptForm.date}T${aptForm.time}`,
+        scheduled_date: aptForm.date,
+        scheduled_time: aptForm.time,
         reason: aptForm.reason
       };
       await createAppointment(payload);

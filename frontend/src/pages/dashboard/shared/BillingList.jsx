@@ -4,7 +4,7 @@ import api from '../../../api/axios';
 import { getPatients } from '../../../api/patients';
 import { getMedicines } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
-import { FaFileInvoice, FaCreditCard, FaEdit, FaPlus, FaWhatsapp, FaCalendarAlt, FaHistory } from 'react-icons/fa';
+import { FaFileInvoice, FaCreditCard, FaEdit, FaPlus, FaWhatsapp, FaCalendarAlt, FaHistory, FaClock } from 'react-icons/fa';
 
 const STATUS = { pending: 'danger', partial: 'warning', paid: 'success', cancelled: 'secondary' };
 
@@ -214,12 +214,18 @@ export default function BillingList() {
           <div className="table-wrapper">
             <table>
               <thead>
-                <tr><th>Bill #</th><th>Patient</th><th>Total</th><th>Paid</th><th>Balance</th><th>Method</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Bill #</th><th>Date & Time</th><th>Patient</th><th>Total</th><th>Paid</th><th>Balance</th><th>Method</th><th>Status</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {bills.map(b => (
                   <tr key={b.id}>
                     <td style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>#{b.id}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{new Date(b.created_at).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <FaClock size={11} /> {new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{b.patient_name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{b.patient_uhid}</div>
