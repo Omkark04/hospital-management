@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import Patient, Appointment, VisitNote, LabReport
+from .models import Patient, Appointment, VisitNote, LabReport, Department, Treatment
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'is_active')
+    search_fields = ('name',)
+
+@admin.register(Treatment)
+class TreatmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'department', 'is_active')
+    list_filter = ('department', 'is_active')
+    search_fields = ('name',)
 
 
 @admin.register(Patient)

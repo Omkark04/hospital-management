@@ -1,0 +1,6 @@
+Spine & Joint Treatments -> ['Back Pain (Lower & Upper)', 'Slip Disc (Disc Bulge / Herniation)', 'Sciatica Pain', 'Neck Pain (Cervical Spondylosis)', 'Shoulder Pain (Frozen Shoulder)', 'Knee Pain (Gap, Swelling, Stiffness)', 'Ligament Injuries (ACL / PCL)', 'Difficulty in Walking / Bending']
+Ayurvedic Therapies -> ['Janu Basti — Knee Therapy', 'Kati Basti — Back Therapy', 'Snehan — Oil Massage Therapy', 'Potli Therapy', 'Lep Therapy', 'Steam Therapy']
+Sujok Therapy -> ['Pain Management through Sujok', 'Spine & Joint Specific Sujok', 'Non-Invasive Drug-Free Therapy']
+Advanced Therapy Support -> ['Electric Stimulation Therapy', 'Chiropractic Gun Therapy', 'Dual Head Hammer Massage', 'Crazy Fit Machine Therapy', 'Full Body Massage Chair Relaxation']
+Counseling & Lifestyle Guidance -> ['Pain Management Counseling', 'Posture Correction Guidance', 'Lifestyle Modification Advice']
+General Ayurveda -> ['General Checkup']
