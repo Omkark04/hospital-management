@@ -21,7 +21,6 @@ const roleMenus = {
     { to: '/dashboard/products', label: 'Store Products', icon: <FaBox /> },
     { to: '/dashboard/inventory', label: 'Inventory', icon: <FaClipboardList /> },
     { section: 'HR' },
-    { to: '/dashboard/employees', label: 'Employees', icon: <FaUsers /> },
     { to: '/dashboard/attendance', label: 'Attendance Log', icon: <FaCheckCircle /> },
     { to: '/dashboard/leaves', label: 'Leave Requests', icon: <FaEdit /> },
     { to: '/dashboard/payroll', label: 'Payroll', icon: <FaMoneyBillWave /> },

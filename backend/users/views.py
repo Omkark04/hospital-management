@@ -9,7 +9,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from .models import CustomUser, UserRole
 from .serializers import (
     LoginSerializer, UserProfileSerializer,
-    StaffCreateSerializer, StaffListSerializer,
+    StaffCreateSerializer, StaffListSerializer, StaffUpdateSerializer,
     ChangePasswordSerializer
 )
 from .permissions import IsOwner, IsOwnerOrReceptionist
@@ -90,7 +90,7 @@ class StaffListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = CustomUser.objects.exclude(role=UserRole.PATIENT)
+        qs = CustomUser.objects.exclude(role=UserRole.PATIENT).select_related('branch', 'employee_profile')
         if user.role == UserRole.OWNER:
             # Owner sees all staff in their branches OR unassigned staff (as they might be the ones to assign them)
             from branches.models import Branch
@@ -113,16 +113,21 @@ class StaffListCreateView(generics.ListCreateAPIView):
 
 
 class StaffDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = StaffListSerializer
     permission_classes = [IsAuthenticated, IsOwner]
-    queryset = CustomUser.objects.exclude(role=UserRole.PATIENT)
+
+    def get_queryset(self):
+        return CustomUser.objects.exclude(role=UserRole.PATIENT).select_related('branch', 'employee_profile')
+
+    def get_serializer_class(self):
+        if self.request.method in ('PUT', 'PATCH'):
+            return StaffUpdateSerializer
+        return StaffListSerializer
 
     def destroy(self, request, *args, **kwargs):
-        """Soft delete — deactivate instead of hard delete."""
+        """Hard delete Staff member."""
         instance = self.get_object()
-        instance.is_active = False
-        instance.save()
-        return Response({'detail': 'Staff member deactivated.'}, status=status.HTTP_200_OK)
+        instance.delete()
+        return Response({'detail': 'Staff member deleted.'}, status=status.HTTP_204_NO_CONTENT)
 from .serializers import PatientRegisterSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 from django.core.cache import cache
 import uuid

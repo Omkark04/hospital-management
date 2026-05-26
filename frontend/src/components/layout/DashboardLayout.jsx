@@ -16,7 +16,7 @@ const pageTitles = {
   '/dashboard/leaves': { title: 'Leave Requests', desc: 'Review leave applications.' },
   '/dashboard/hospitals': { title: 'Hospitals', desc: 'Manage your hospitals.' },
   '/dashboard/branches': { title: 'Branches', desc: 'Manage hospital branches.' },
-  '/dashboard/staff': { title: 'Staff', desc: 'Manage staff across branches.' },
+  '/dashboard/staff': { title: 'Staff & HR', desc: 'Manage staff accounts, roles, and HR profiles.' },
   '/dashboard/campaigns': { title: 'Campaigns', desc: 'Create and manage campaigns.' },
   '/dashboard/products': { title: 'Products', desc: 'Manage product listings.' },
   '/dashboard/enquiries': { title: 'Product Enquiries', desc: 'View and respond to enquiries.' },

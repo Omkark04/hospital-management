@@ -115,7 +115,7 @@ export default function CampaignList() {
                 <div><FaCalendarAlt /> {c.start_date} → {c.end_date}</div>
                 {c.location && <div><FaMapMarkerAlt /> {c.location}</div>}
                 {c.branch_name && <div><FaBuilding /> {c.branch_name}</div>}
-                {c.target_registrations && <div>🎯 Target: {c.target_registrations} patients</div>}
+                {c.target_registrations && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaBullseye style={{ fontSize: '0.85rem' }} /> Target: {c.target_registrations} patients</div>}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => openModal(c)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>

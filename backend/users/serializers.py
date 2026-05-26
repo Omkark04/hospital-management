@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
@@ -55,12 +56,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class StaffCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True)
+    # HR profile fields (write-only; stored on Employee model)
+    designation = serializers.CharField(required=False, allow_blank=True, default='')
+    salary_type = serializers.ChoiceField(choices=['daily', 'monthly'], required=False, default='monthly')
+    salary = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    date_of_joining = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = CustomUser
         fields = (
             'username', 'password', 'confirm_password',
-            'first_name', 'last_name', 'email', 'phone', 'role', 'branch'
+            'first_name', 'last_name', 'email', 'phone', 'role', 'branch',
+            'designation', 'salary_type', 'salary', 'date_of_joining',
         )
 
     def validate_role(self, value):
@@ -76,42 +83,135 @@ class StaffCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         from .utils import send_registration_email
         from hr.models import Employee
+        # Pop HR fields before creating the user
+        designation = validated_data.pop('designation', '')
+        salary_type = validated_data.pop('salary_type', 'monthly')
+        salary = validated_data.pop('salary', None)
+        date_of_joining = validated_data.pop('date_of_joining', None)
+
         password = validated_data.pop('password')
         user = CustomUser(**validated_data)
         user.set_password(password)
         user.save()
-        
-        # Create Employee Profile for attendance and HR tracking
-        # (Exclude Patients and Owners if needed, but usually all staff need this)
+
+        # Create / update Employee Profile for HR tracking
         if user.role != UserRole.PATIENT and user.branch:
-            Employee.objects.create(
+            Employee.objects.update_or_create(
                 user=user,
-                branch=user.branch,
-                designation=user.role.title()
+                defaults={
+                    'branch': user.branch,
+                    'designation': designation or user.role.title(),
+                    'salary_type': salary_type,
+                    'salary': salary,
+                    'date_of_joining': date_of_joining,
+                }
             )
-        
+
         # Send email with credentials
         send_registration_email(user, password)
-        
+
         return user
 
 
 class StaffListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     branch_name = serializers.SerializerMethodField()
+    # HR profile fields (read-only — sourced from Employee model)
+    employee_id = serializers.SerializerMethodField()
+    designation = serializers.SerializerMethodField()
+    salary = serializers.SerializerMethodField()
+    salary_type = serializers.SerializerMethodField()
+    date_of_joining = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'full_name', 'email', 'phone', 'role', 'branch', 'branch_name', 'is_active')
+        fields = (
+            'id', 'username', 'first_name', 'last_name', 'full_name', 'email', 'phone', 'role',
+            'branch', 'branch_name', 'is_active',
+            'employee_id', 'designation', 'salary', 'salary_type', 'date_of_joining',
+        )
 
     def get_full_name(self, obj):
         return obj.get_full_name()
 
     def get_branch_name(self, obj):
         return obj.branch.name if obj.branch else None
+
+    def _emp(self, obj):
+        """Safe access to employee_profile."""
+        try:
+            return obj.employee_profile
+        except Exception:
+            return None
+
+    def get_employee_id(self, obj):
+        emp = self._emp(obj)
+        return emp.id if emp else None
+
+    def get_designation(self, obj):
+        emp = self._emp(obj)
+        return emp.designation if emp else None
+
+    def get_salary(self, obj):
+        emp = self._emp(obj)
+        return str(emp.salary) if emp and emp.salary is not None else None
+
+    def get_salary_type(self, obj):
+        emp = self._emp(obj)
+        return emp.salary_type if emp else None
+
+    def get_date_of_joining(self, obj):
+        emp = self._emp(obj)
+        return emp.date_of_joining if emp else None
+
+
+class StaffUpdateSerializer(serializers.ModelSerializer):
+    """Used for PUT/PATCH on /auth/staff/<id>/ — updates user fields and HR profile."""
+    designation = serializers.CharField(required=False, allow_blank=True)
+    salary_type = serializers.ChoiceField(choices=['daily', 'monthly'], required=False)
+    salary = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    date_of_joining = serializers.DateField(required=False, allow_null=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'email', 'phone', 'role', 'branch', 'is_active',
+                  'designation', 'salary_type', 'salary', 'date_of_joining')
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        from hr.models import Employee
+        # Pop HR fields
+        designation = validated_data.pop('designation', None)
+        salary_type = validated_data.pop('salary_type', None)
+        salary = validated_data.pop('salary', None)
+        date_of_joining = validated_data.pop('date_of_joining', None)
+
+        # Update the User record
+        instance = super().update(instance, validated_data)
+
+        # Update or create Employee profile
+        if instance.role != UserRole.PATIENT and instance.branch:
+            emp, _ = Employee.objects.get_or_create(
+                user=instance,
+                defaults={'branch': instance.branch, 'designation': instance.role.title()}
+            )
+            if designation is not None:
+                emp.designation = designation
+            if salary_type is not None:
+                emp.salary_type = salary_type
+            if salary is not None:
+                emp.salary = salary
+            if date_of_joining is not None:
+                emp.date_of_joining = date_of_joining
+            # Keep branch in sync with user
+            emp.branch = instance.branch
+            emp.save()
+
+        return instance
 
 
 # ─────────────────── Change Password ─────────────────────────

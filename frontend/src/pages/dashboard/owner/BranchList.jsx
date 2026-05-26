@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getBranches, createBranch, updateBranch, deleteBranch, getHospitals, resolveMapLink } from '../../../api/branches';
-import { FaBuilding, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaBuilding, FaTrash, FaEdit, FaCheckCircle, FaExclamationTriangle, FaMapMarkerAlt } from 'react-icons/fa';
 
 export default function BranchList() {
   const [branches, setBranches] = useState([]);
@@ -25,11 +25,11 @@ export default function BranchList() {
 
   const openModal = (item = null) => {
     setEditItem(item);
-    setForm(item ? { 
-      hospital: item.hospital, 
-      name: item.name, 
-      address: item.address, 
-      phone: item.phone, 
+    setForm(item ? {
+      hospital: item.hospital,
+      name: item.name,
+      address: item.address,
+      phone: item.phone,
       email: item.email,
       latitude: item.latitude || '',
       longitude: item.longitude || '',
@@ -115,7 +115,7 @@ export default function BranchList() {
                   <tr key={b.id}>
                     <td>
                       <div style={{ fontWeight: 700 }}>{b.name}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--primary)' }}>Code: {b.code || b.name?.slice(0,3).toUpperCase()}</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--primary)' }}>Code: {b.code || b.name?.slice(0, 3).toUpperCase()}</div>
                     </td>
                     <td style={{ fontSize: '0.875rem' }}>{b.hospital_name || `Hospital #${b.hospital}`}</td>
                     <td style={{ fontSize: '0.875rem' }}>
@@ -125,26 +125,30 @@ export default function BranchList() {
                     <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.address}</td>
                     <td style={{ fontSize: '0.82rem' }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-color)' }}>
-                        In: <span style={{ color: 'var(--primary)' }}>{b.shift_start_time?.slice(0,5) || '09:00'}</span>
+                        In: <span style={{ color: 'var(--primary)' }}>{b.shift_start_time?.slice(0, 5) || '09:00'}</span>
                       </div>
                       <div style={{ fontWeight: 600, color: 'var(--text-color)', marginTop: 2 }}>
-                        Out: <span style={{ color: 'var(--primary)' }}>{b.shift_end_time?.slice(0,5) || '17:00'}</span>
+                        Out: <span style={{ color: 'var(--primary)' }}>{b.shift_end_time?.slice(0, 5) || '17:00'}</span>
                       </div>
                     </td>
                     <td style={{ fontSize: '0.82rem' }}>
                       {b.latitude && b.longitude ? (
-                        <div>
-                          <span style={{ color: 'var(--success)', fontWeight: 600 }}>✓ Configured</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <FaCheckCircle style={{ color: 'var(--success)' }} />
+                          <span style={{ color: 'var(--success)', fontWeight: 600 }}>Configured</span>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{b.attendance_radius_meters || 50}m radius</div>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--warning)', fontSize: '0.75rem' }}>⚠ Not set</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--warning)', fontSize: '0.75rem' }}>
+                          <FaExclamationTriangle />
+                          <span>Not set</span>
+                        </div>
                       )}
                     </td>
                     <td><span className={`badge badge-${b.is_active ? 'success' : 'danger'}`}>{b.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => openModal(b)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
-                      <button className="btn btn-sm" onClick={() => handleDelete(b)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate</button>
+                      <button className="btn btn-sm" onClick={() => handleDelete(b)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -189,20 +193,22 @@ export default function BranchList() {
                   <textarea className="input" required rows={2} value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} />
                 </div>
                 <div className="form-group" style={{ padding: 12, background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginTop: 4 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--primary)', marginBottom: 6 }}>✦ Auto-Extract from Google Maps Link</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <FaMapMarkerAlt /> Auto-Extract from Google Maps Link
+                  </label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input 
-                      type="url" 
-                      className="input" 
-                      value={mapLink} 
-                      onChange={e => setMapLink(e.target.value)} 
-                      placeholder="Paste short/full link (e.g. maps.app.goo.gl/...)" 
+                    <input
+                      type="url"
+                      className="input"
+                      value={mapLink}
+                      onChange={e => setMapLink(e.target.value)}
+                      placeholder="Paste short/full link (e.g. maps.app.goo.gl/...)"
                       style={{ fontSize: '0.8rem', padding: '6px 10px' }}
                     />
-                    <button 
-                      type="button" 
-                      className="btn btn-primary btn-sm" 
-                      onClick={handleResolveLink} 
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleResolveLink}
                       disabled={resolving || !mapLink}
                       style={{ whiteSpace: 'nowrap', height: 'auto' }}
                     >
