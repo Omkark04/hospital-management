@@ -5,11 +5,13 @@ export const getBranchStats = () => api.get('/branches/stats/');
 export const getBranch = (id) => api.get(`/branches/${id}/`);
 export const createBranch = (data) => api.post('/branches/', data);
 export const updateBranch = (id, data) => api.put(`/branches/${id}/`, data);
+export const deleteBranch = (id) => api.delete(`/branches/${id}/`);
 export const getPublicBranches = () => api.get('/branches/public/');
 
 export const getHospitals = () => api.get('/branches/hospitals/');
 export const createHospital = (data) => api.post('/branches/hospitals/', data);
 export const updateHospital = (id, data) => api.put(`/branches/hospitals/${id}/`, data);
+export const deleteHospital = (id) => api.delete(`/branches/hospitals/${id}/`);
 
 export const getBranchServices = (branchId) => api.get(`/branches/${branchId}/services/`);
 export const createBranchService = (branchId, data) => api.post(`/branches/${branchId}/services/`, data);

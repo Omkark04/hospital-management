@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getEmployees, createEmployee, updateEmployee } from '../../../api/hr';
+import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../../../api/hr';
 import { getStaff } from '../../../api/auth';
 import { getBranches, getHospitals } from '../../../api/branches';
 import { useAuth } from '../../../context/AuthContext';
-import { FaEye, FaEyeSlash, FaUsers } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaUsers, FaTrash, FaEdit } from 'react-icons/fa';
 
 export default function EmployeeList() {
   const { user } = useAuth();
@@ -102,6 +102,16 @@ export default function EmployeeList() {
     finally { setSaving(false); }
   };
 
+  const handleDelete = async (emp) => {
+    if (!window.confirm(`Are you sure you want to remove ${emp.full_name}? This action will deactivate the employee.`)) return;
+    try {
+      await deleteEmployee(emp.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete employee.');
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -135,7 +145,10 @@ export default function EmployeeList() {
                     <td style={{ fontSize: '0.875rem' }}>{e.branch_name}</td>
                     <td style={{ fontWeight: 600 }}>{e.salary ? `₹${e.salary}` : '—'}</td>
                     <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{e.date_of_joining || '—'}</td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => openModal(e)}>Edit</button></td>
+                    <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openModal(e)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
+                      <button className="btn btn-sm" onClick={() => handleDelete(e)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Remove</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -87,12 +87,18 @@ class PatientListCreateView(generics.ListCreateAPIView):
             serializer.save(registered_by=user)
 
 
-class PatientDetailView(generics.RetrieveUpdateAPIView):
+class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PatientDetailSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
 
     def get_queryset(self):
         return branch_filtered_queryset(Patient.objects.all(), self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response({'detail': 'Patient deactivated.'}, status=status.HTTP_200_OK)
 
 
 class MyPatientProfileView(generics.RetrieveUpdateAPIView):

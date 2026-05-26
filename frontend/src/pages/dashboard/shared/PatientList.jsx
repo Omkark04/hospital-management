@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getPatients } from '../../../api/patients';
-import { FaDownload, FaUpload, FaTimes, FaUsers, FaHistory, FaPhone, FaMapMarkerAlt, FaFileInvoice, FaUserCircle, FaPrescriptionBottleAlt } from 'react-icons/fa';
+import { getPatients, deletePatient } from '../../../api/patients';
+import { FaDownload, FaUpload, FaTimes, FaUsers, FaHistory, FaPhone, FaMapMarkerAlt, FaFileInvoice, FaUserCircle, FaPrescriptionBottleAlt, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../../context/AuthContext';
 import { getPrescriptions } from '../../../api/medicines';
 import { getBills } from '../../../api/billing';
@@ -36,6 +36,16 @@ export default function PatientList() {
   }, [search, page]);
 
   useEffect(() => { fetchPatients(); }, [fetchPatients]);
+
+  const handleDelete = async (patient) => {
+    if (!window.confirm(`Are you sure you want to remove patient "${patient.first_name} ${patient.last_name}"? This will deactivate their profile.`)) return;
+    try {
+      await deletePatient(patient.id);
+      fetchPatients();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to remove patient.');
+    }
+  };
 
   const genderBadge = (g) => ({ male: 'info', female: 'secondary', other: 'warning' }[g] || 'primary');
 
@@ -163,6 +173,9 @@ export default function PatientList() {
                     <td>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => setSelectedPatient(p)} className="btn btn-ghost btn-sm">View</button>
+                        {(user?.role === 'owner' || user?.role === 'receptionist') && (
+                          <button onClick={() => handleDelete(p)} className="btn btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Remove</button>
+                        )}
                       </div>
                     </td>
                   </tr>

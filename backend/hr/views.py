@@ -36,13 +36,19 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
             serializer.save()
 
 
-class EmployeeDetailView(generics.RetrieveUpdateAPIView):
-    """Owner and Doctor can view/edit an employee."""
+class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Owner and Doctor can view/edit/deactivate an employee."""
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
 
     def get_queryset(self):
         return branch_qs(Employee.objects.all(), self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response({'detail': 'Employee deactivated.'}, status=status.HTTP_200_OK)
 
 
 class MyEmployeeProfileView(generics.RetrieveAPIView):

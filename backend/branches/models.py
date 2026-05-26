@@ -13,6 +13,7 @@ class Hospital(models.Model):
     email = models.EmailField(blank=True)
     address = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)  # Cloudinary URL (set later)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

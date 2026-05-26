@@ -6,7 +6,7 @@ import {
   FaCommentAlt, FaLink, FaStar, FaBell, FaUserCircle, FaUserInjured, 
   FaCalendarAlt, FaPrescriptionBottleAlt, FaPlusCircle, FaFileInvoiceDollar, 
   FaCheckCircle, FaEdit, FaClipboardList, FaChartLine, FaPhoneAlt, FaQrcode, FaCamera,
-  FaMoneyBillWave, FaUserPlus
+  FaMoneyBillWave, FaUserPlus, FaSignOutAlt
 } from 'react-icons/fa';
 
 const roleMenus = {
@@ -163,14 +163,36 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* User / logout */}
         <div className="sidebar-bottom">
-          <div className="sidebar-user" onClick={handleLogout} title="Logout">
-            <div className="sidebar-avatar">
-              {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+          <div className="sidebar-user" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="sidebar-avatar">
+                {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="sidebar-user-info">
+                <div className="name">{user?.full_name || user?.username}</div>
+                <div className="role">{user?.role}</div>
+              </div>
             </div>
-            <div className="sidebar-user-info">
-              <div className="name">{user?.full_name || user?.username}</div>
-              <div className="role">{user?.role} · Logout</div>
-            </div>
+            <button 
+              onClick={handleLogout} 
+              title="Logout"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.color = 'var(--danger)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              <FaSignOutAlt size={18} />
+            </button>
           </div>
         </div>
       </aside>

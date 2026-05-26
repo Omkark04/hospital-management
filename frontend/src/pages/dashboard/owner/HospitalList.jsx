@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getHospitals, createHospital, updateHospital } from '../../../api/branches';
-import { FaHospital, FaMapMarkerAlt, FaMobileAlt, FaEnvelope } from 'react-icons/fa';
+import { getHospitals, createHospital, updateHospital, deleteHospital } from '../../../api/branches';
+import { FaHospital, FaMapMarkerAlt, FaMobileAlt, FaEnvelope, FaTrash, FaEdit } from 'react-icons/fa';
 
 export default function HospitalList() {
   const [hospitals, setHospitals] = useState([]);
@@ -38,6 +38,16 @@ export default function HospitalList() {
     finally { setSaving(false); }
   };
 
+  const handleDelete = async (hospital) => {
+    if (!window.confirm(`Are you sure you want to deactivate hospital "${hospital.name}"? It will be hidden from the system.`)) return;
+    try {
+      await deleteHospital(hospital.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to deactivate hospital.');
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -62,7 +72,10 @@ export default function HospitalList() {
             <div key={h.id} className="card card-body">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}><FaHospital /></div>
-                <button className="btn btn-ghost btn-sm" onClick={() => openModal(h)}>Edit</button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openModal(h)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
+                  <button className="btn btn-sm" onClick={() => handleDelete(h)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate</button>
+                </div>
               </div>
               <h3 style={{ fontSize: '1.1rem', marginBottom: 8 }}>{h.name}</h3>
               {h.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4 }}><FaMobileAlt /> {h.phone}</div>}

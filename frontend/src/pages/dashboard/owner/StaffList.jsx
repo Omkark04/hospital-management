@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getStaff, createStaff, updateStaff } from '../../../api/auth';
+import { getStaff, createStaff, updateStaff, deleteStaff } from '../../../api/auth';
 import { getBranches } from '../../../api/branches';
-import { FaUsers } from 'react-icons/fa';
+import { FaUsers, FaTrash, FaEdit } from 'react-icons/fa';
 
 const ROLES = ['doctor', 'receptionist', 'employee'];
 const ROLE_COLORS = { 
@@ -68,6 +68,16 @@ export default function StaffList() {
     finally { setSaving(false); }
   };
 
+  const handleDelete = async (member) => {
+    if (!window.confirm(`Are you sure you want to deactivate staff member "${member.full_name}"?`)) return;
+    try {
+      await deleteStaff(member.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to deactivate staff member.');
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -103,7 +113,12 @@ export default function StaffList() {
                     <td style={{ fontSize: '0.875rem' }}>{s.phone || '—'}</td>
                     <td style={{ fontSize: '0.875rem' }}>{s.email || '—'}</td>
                     <td><span className={`badge badge-${s.is_active ? 'success' : 'danger'}`}>{s.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => openModal(s)}>Edit</button></td>
+                    <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openModal(s)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
+                      {s.is_active && (
+                        <button className="btn btn-sm" onClick={() => handleDelete(s)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate</button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

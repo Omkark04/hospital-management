@@ -14,18 +14,24 @@ class HospitalListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Hospital.objects.filter(owner=self.request.user)
+        return Hospital.objects.filter(owner=self.request.user, is_active=True)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
 
-class HospitalDetailView(generics.RetrieveUpdateAPIView):
+class HospitalDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = HospitalSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Hospital.objects.filter(owner=self.request.user)
+        return Hospital.objects.filter(owner=self.request.user, is_active=True)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response({'detail': 'Hospital deactivated.'}, status=status.HTTP_200_OK)
 
 
 # ─────────────────── Branch ──────────────────────────────────

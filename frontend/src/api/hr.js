@@ -4,6 +4,7 @@ export const getEmployees = (params) => api.get('/hr/employees/', { params });
 export const getEmployee = (id) => api.get(`/hr/employees/${id}/`);
 export const createEmployee = (data) => api.post('/hr/employees/', data);
 export const updateEmployee = (id, data) => api.put(`/hr/employees/${id}/`, data);
+export const deleteEmployee = (id) => api.delete(`/hr/employees/${id}/`);
 export const getMyEmployeeProfile = () => api.get('/hr/employees/me/');
 
 // Attendance is READ-ONLY — all marking happens via QR scan

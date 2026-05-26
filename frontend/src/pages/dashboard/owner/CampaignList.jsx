@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCampaigns, createCampaign, updateCampaign, assignCampaignManager } from '../../../api/campaigns';
+import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, assignCampaignManager } from '../../../api/campaigns';
 import { getStaff } from '../../../api/auth';
 import { getBranches } from '../../../api/branches';
-import { FaBullseye, FaCalendarAlt, FaMapMarkerAlt, FaBuilding } from 'react-icons/fa';
+import { FaBullseye, FaCalendarAlt, FaMapMarkerAlt, FaBuilding, FaTrash, FaEdit } from 'react-icons/fa';
 
 const STATUS_COLORS = { planned: 'secondary', active: 'success', completed: 'primary', cancelled: 'danger' };
 
@@ -61,6 +61,16 @@ export default function CampaignList() {
     finally { setSaving(false); }
   };
 
+  const handleDelete = async (campaign) => {
+    if (!window.confirm(`Are you sure you want to deactivate campaign "${campaign.name}"? It will be hidden from the system.`)) return;
+    try {
+      await deleteCampaign(campaign.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to deactivate campaign.');
+    }
+  };
+
   const openAssign = (c) => {
     setShowAssignModal(c);
     setAssignForm({ user: '', role_in_campaign: 'manager' });
@@ -107,9 +117,10 @@ export default function CampaignList() {
                 {c.branch_name && <div><FaBuilding /> {c.branch_name}</div>}
                 {c.target_registrations && <div>🎯 Target: {c.target_registrations} patients</div>}
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => openModal(c)}>Edit</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => openModal(c)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => openAssign(c)}>+ Assign Manager</button>
+                <button className="btn btn-sm" onClick={() => handleDelete(c)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate</button>
               </div>
             </div>
           ))}

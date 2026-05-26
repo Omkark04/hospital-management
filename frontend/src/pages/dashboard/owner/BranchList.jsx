@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBranches, createBranch, updateBranch, getHospitals, resolveMapLink } from '../../../api/branches';
-import { FaBuilding } from 'react-icons/fa';
+import { getBranches, createBranch, updateBranch, deleteBranch, getHospitals, resolveMapLink } from '../../../api/branches';
+import { FaBuilding, FaTrash, FaEdit } from 'react-icons/fa';
 
 export default function BranchList() {
   const [branches, setBranches] = useState([]);
@@ -79,6 +79,16 @@ export default function BranchList() {
     finally { setSaving(false); }
   };
 
+  const handleDelete = async (branch) => {
+    if (!window.confirm(`Are you sure you want to deactivate branch "${branch.name}"? It will be hidden from the system.`)) return;
+    try {
+      await deleteBranch(branch.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to deactivate branch.');
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -132,7 +142,10 @@ export default function BranchList() {
                       )}
                     </td>
                     <td><span className={`badge badge-${b.is_active ? 'success' : 'danger'}`}>{b.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => openModal(b)}>Edit</button></td>
+                    <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openModal(b)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
+                      <button className="btn btn-sm" onClick={() => handleDelete(b)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

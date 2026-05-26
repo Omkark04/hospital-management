@@ -25,13 +25,13 @@ class CampaignListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         from branches.models import Branch
         ids = Branch.objects.filter(hospital__owner=self.request.user).values_list('id', flat=True)
-        return Campaign.objects.filter(branch_id__in=ids)
+        return Campaign.objects.filter(branch_id__in=ids, is_active=True)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
 
-class CampaignDetailView(generics.RetrieveUpdateAPIView):
+class CampaignDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CampaignSerializer
     permission_classes = [IsAuthenticated]
 
@@ -40,10 +40,16 @@ class CampaignDetailView(generics.RetrieveUpdateAPIView):
         if user.role == UserRole.OWNER:
             from branches.models import Branch
             ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
-            return Campaign.objects.filter(branch_id__in=ids)
+            return Campaign.objects.filter(branch_id__in=ids, is_active=True)
         # Doctors/Employees see campaigns where they are assigned as managers
         assigned = CampaignManagerAssignment.objects.filter(user=user, is_active=True).values_list('campaign_id', flat=True)
-        return Campaign.objects.filter(id__in=assigned)
+        return Campaign.objects.filter(id__in=assigned, is_active=True)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response({'detail': 'Campaign deactivated.'}, status=status.HTTP_200_OK)
 
 
 class CampaignManagerAssignView(generics.CreateAPIView):
@@ -63,7 +69,7 @@ class MyCampaignsView(generics.ListAPIView):
         assigned = CampaignManagerAssignment.objects.filter(
             user=self.request.user, is_active=True
         ).values_list('campaign_id', flat=True)
-        return Campaign.objects.filter(id__in=assigned, status='active')
+        return Campaign.objects.filter(id__in=assigned, status='active', is_active=True)
 
 
 class CampaignPatientListCreateView(generics.ListCreateAPIView):

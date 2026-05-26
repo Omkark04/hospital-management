@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../api/axios';
+import { deleteProduct } from '../../../api/products';
 import { useAuth } from '../../../context/AuthContext';
 import LowStockBanner from '../../../components/common/LowStockBanner';
-import { FaPlus, FaMinus, FaEdit, FaHistory, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaMinus, FaEdit, FaHistory, FaFilter, FaTrash } from 'react-icons/fa';
 import { getBranches } from '../../../api/branches';
 
 export default function Inventory() {
@@ -78,6 +79,21 @@ export default function Inventory() {
       fetchItems();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to update stock');
+    }
+  };
+
+  const handleDeleteItem = async (item) => {
+    const label = activeTab === 'products' ? 'product' : 'medicine';
+    if (!window.confirm(`Are you sure you want to remove "${item.name}" from inventory? This will deactivate it.`)) return;
+    try {
+      if (activeTab === 'products') {
+        await deleteProduct(item.id);
+      } else {
+        await api.delete(`/medicines/${item.id}/`);
+      }
+      fetchItems();
+    } catch (err) {
+      alert(err.response?.data?.detail || `Failed to delete ${label}.`);
     }
   };
 
@@ -224,7 +240,7 @@ export default function Inventory() {
                   <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.78rem' }}>Alert Threshold: {item.low_stock_threshold}</p>
                 </div>
                 
-                <div style={{ padding: '12px 18px', background: 'var(--parchment-deep)', borderTop: '1px solid var(--border-card)', display: 'flex', gap: '8px' }}>
+                <div style={{ padding: '12px 18px', background: 'var(--parchment-deep)', borderTop: '1px solid var(--border-card)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button className="btn btn-primary btn-sm" onClick={() => {
                     setSelectedItem(item);
                     setMovementType('in');
@@ -238,6 +254,9 @@ export default function Inventory() {
                     setShowModal(true);
                   }} style={{ flex: 1, justifyContent: 'center' }}>
                     <FaMinus /> Stock Out
+                  </button>
+                  <button className="btn btn-sm" onClick={() => handleDeleteItem(item)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 'var(--radius-sm)' }}>
+                    <FaTrash style={{ fontSize: '0.75rem' }} /> Delete
                   </button>
                 </div>
               </div>
