@@ -356,11 +356,15 @@ export default function StaffList() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Role *</label>
-                      <select className="input" {...f('role')}>
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
+                      {editItem && editItem.role === 'owner' ? (
+                        <input className="input" value="Owner" disabled />
+                      ) : (
+                        <select className="input" {...f('role')}>
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Hospital</label>

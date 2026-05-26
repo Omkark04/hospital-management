@@ -181,6 +181,21 @@ class StaffUpdateSerializer(serializers.ModelSerializer):
         fields = ('first_name', 'last_name', 'email', 'phone', 'role', 'branch', 'is_active',
                   'designation', 'salary_type', 'salary', 'date_of_joining')
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        new_role = attrs.get('role')
+
+        if request and self.instance:
+            # 1. Prevent users from changing their own role
+            if request.user == self.instance and new_role and new_role != self.instance.role:
+                raise serializers.ValidationError({'role': 'You cannot change your own role.'})
+
+            # 2. Prevent demoting any owner
+            if self.instance.role == UserRole.OWNER and new_role and new_role != UserRole.OWNER:
+                raise serializers.ValidationError({'role': 'Owner accounts cannot be changed to other roles.'})
+
+        return attrs
+
     @transaction.atomic
     def update(self, instance, validated_data):
         from hr.models import Employee

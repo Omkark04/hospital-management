@@ -1,0 +1,4 @@
+ID: 1, Username: Mangesh04, Role: receptionist, Active: True, Branch: None
+ID: 16, Username: Ganesh22, Role: doctor, Active: True, Branch: 1
+ID: 3, Username: MangeshW04, Role: doctor, Active: True, Branch: 1
+ID: 10, Username: Tushar04, Role: doctor, Active: True, Branch: 2
