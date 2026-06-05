@@ -17,15 +17,35 @@ import {
 import BranchDetailModal from './BranchDetailModal';
 
 function StatCard({ icon, label, value, color, link, badge }) {
-  return (
-    <div className={`stat-card ${color}`} style={{ position: 'relative' }}>
+  const inner = (
+    <>
       <div className="stat-icon" style={{ background: `var(--${color === 'cyan' ? 'primary' : color === 'purple' ? 'secondary' : color === 'green' ? 'success' : color === 'orange' ? 'warning' : 'danger'}-bg)` }}>
         {icon}
       </div>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value ?? '—'}</div>
       {badge && <div style={{ position: 'absolute', top: 16, right: 16, fontSize: '0.75rem', fontWeight: 600, color: 'var(--moss)', background: 'rgba(61,90,42,0.1)', padding: '2px 8px', borderRadius: '12px' }}>{badge}</div>}
-      {link && <Link to={link} style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: 8, display: 'block' }}>View all →</Link>}
+      {link && <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: 8 }}>View all →</div>}
+    </>
+  );
+
+  if (link) {
+    return (
+      <Link
+        to={link}
+        className={`stat-card ${color}`}
+        style={{ position: 'relative', textDecoration: 'none', display: 'block', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={`stat-card ${color}`} style={{ position: 'relative' }}>
+      {inner}
     </div>
   );
 }

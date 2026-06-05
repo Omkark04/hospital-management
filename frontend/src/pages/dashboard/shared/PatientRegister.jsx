@@ -34,6 +34,26 @@ function Field({ label, name, type = 'text', required, options, span, form, onCh
   );
 }
 
+// Safe today string — computed once at module load to avoid re-computation
+// and to prevent the "62026" year corruption issue on mobile browsers.
+function getTodayISO() {
+  const d = new Date();
+  // Pad month and day to always produce YYYY-MM-DD
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// Validate that a date string is a plausible YYYY-MM-DD and year is sane
+function isValidDateString(val) {
+  if (!val || typeof val !== 'string') return false;
+  const match = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = parseInt(match[1], 10);
+  return year >= 2000 && year <= 2100;
+}
+
 export default function PatientRegister() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +75,8 @@ export default function PatientRegister() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
+
+  const todayISO = getTodayISO();
 
   useEffect(() => {
     getDepartments().then(({ data }) => setDepartments(data.results || data)).catch(() => console.warn('Run migrations for departments'));
@@ -80,9 +102,10 @@ export default function PatientRegister() {
     }
   }, [form.primary_department]);
 
-  // Fetch available slots when branch or date changes
+  // Fetch available slots when branch or date changes.
+  // Guard against malformed dates (e.g. "62026-05-01" from mobile browser year quirk).
   useEffect(() => {
-    if (aptDate && aptBranch) {
+    if (aptDate && aptBranch && isValidDateString(aptDate)) {
       setLoadingSlots(true);
       api.get(`/patients/public/available-slots/?date=${aptDate}&branch=${aptBranch}`)
         .then(res => {
@@ -323,9 +346,15 @@ export default function PatientRegister() {
                     type="date"
                     className="input"
                     required={bookAppointment}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={todayISO}
+                    max="2100-12-31"
                     value={aptDate}
-                    onChange={e => { setAptDate(e.target.value); setAptTime(''); }}
+                    onChange={e => {
+                      // Reject dates with corrupted years (mobile browser quirk: e.g. 62026)
+                      if (e.target.value && !isValidDateString(e.target.value)) return;
+                      setAptDate(e.target.value);
+                      setAptTime('');
+                    }}
                   />
                 </div>
 
