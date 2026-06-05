@@ -37,6 +37,18 @@ class EmployeeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id', 'created_at')
 
+    def validate(self, attrs):
+        from users.models import UserRole
+        request = self.context.get('request')
+        if request:
+            if request.user.role == UserRole.OWNER:
+                if not attrs.get('branch') and not (self.instance and self.instance.branch):
+                    raise serializers.ValidationError({'branch': 'A branch must be assigned.'})
+            else:
+                if not request.user.branch:
+                    raise serializers.ValidationError({'non_field_errors': 'Your account is not assigned to any branch. Please contact your administrator.'})
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
         # Pop write-only fields

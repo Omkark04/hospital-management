@@ -118,6 +118,10 @@ class Patient(models.Model):
         'users.CustomUser', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='referred_patients'
     )
+    referral_source = models.CharField(
+        max_length=255, blank=True,
+        help_text='Free-text referral source (e.g., "walk-in", "school teacher", "old patient")'
+    )
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

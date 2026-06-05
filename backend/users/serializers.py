@@ -81,6 +81,13 @@ class StaffCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs.pop('confirm_password'):
             raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        
+        # Enforce that doctor, receptionist, and employee roles must have a branch assigned
+        role = attrs.get('role')
+        branch = attrs.get('branch')
+        if role in [UserRole.DOCTOR, UserRole.RECEPTIONIST, UserRole.EMPLOYEE] and not branch:
+            raise serializers.ValidationError({'branch': f'A branch must be assigned for the {role} role.'})
+            
         return attrs
 
     @transaction.atomic
@@ -193,6 +200,12 @@ class StaffUpdateSerializer(serializers.ModelSerializer):
             # 2. Prevent demoting any owner
             if self.instance.role == UserRole.OWNER and new_role and new_role != UserRole.OWNER:
                 raise serializers.ValidationError({'role': 'Owner accounts cannot be changed to other roles.'})
+
+        # Enforce that doctor, receptionist, and employee roles must have a branch assigned
+        role = new_role or (self.instance.role if self.instance else None)
+        branch = attrs.get('branch') if 'branch' in attrs else (self.instance.branch if self.instance else None)
+        if role in [UserRole.DOCTOR, UserRole.RECEPTIONIST, UserRole.EMPLOYEE] and not branch:
+            raise serializers.ValidationError({'branch': f'A branch must be assigned for the {role} role.'})
 
         return attrs
 

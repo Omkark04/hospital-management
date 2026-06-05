@@ -165,7 +165,7 @@ export default function OwnerDashboard() {
       {/* Stats */}
       <div className="stats-grid" style={{ marginBottom: 36 }}>
         <StatCard icon={<FaUserInjured />} label="Total Patients" value={stats.patients} color="cyan" link="/dashboard/patients" />
-        <StatCard icon={<FaUsers />} label="Employees" value={stats.employees} color="purple" link="/dashboard/employees" />
+        <StatCard icon={<FaUsers />} label="Employees" value={stats.employees} color="purple" link="/dashboard/staff" />
         <StatCard icon={<FaBullhorn />} label="Campaigns" value={stats.campaigns} color="green" link="/dashboard/campaigns" />
         <StatCard icon={<FaBuilding />} label="Branches" value={stats.branches} color="orange" link="/dashboard/branches" />
       </div>

@@ -20,6 +20,8 @@ export default function PatientList() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState(null);
 
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientHistory, setPatientHistory] = useState({ prescriptions: [], bills: [], loading: false });
@@ -71,17 +73,17 @@ export default function PatientList() {
     e.preventDefault();
     if (!importFile) return alert("Please select a file.");
     setImporting(true);
+    setImportError(null);
+    setImportResult(null);
     try {
       const { importPatients } = await import('../../../api/patients');
       const formData = new FormData();
       formData.append('file', importFile);
       const res = await importPatients(formData);
-      alert(res.data.message);
-      setShowImportModal(false);
-      setImportFile(null);
+      setImportResult(res.data);
       fetchPatients(); // refresh list
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to import patients");
+      setImportError(err.response?.data?.error || "Failed to import patients");
     } finally {
       setImporting(false);
     }
@@ -104,7 +106,15 @@ export default function PatientList() {
   }, [selectedPatient]);
 
   const downloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8,First Name,Last Name,Email,Phone,Gender,Blood Group,Address\nJohn,Doe,john@example.com,9876543210,male,O+,123 Street";
+    const headers = [
+      'First Name', 'Last Name', 'Email', 'Phone', 'Gender', 'Blood Group',
+      'Address', 'Age', 'Problem', 'Refer By', 'Medicine', 'Duration of Pain'
+    ].join(',');
+    const sampleRow = [
+      'John', 'Doe', 'john@example.com', '9876543210', 'male', 'O+',
+      '123 Street Address', '45', 'Chronic back pain', 'Dr. Smith', 'Aspirin', '6 months'
+    ].join(',');
+    const csvContent = `data:text/csv;charset=utf-8,${headers}\n${sampleRow}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -127,7 +137,7 @@ export default function PatientList() {
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             style={{ maxWidth: 320 }}
           />
-          <button onClick={() => setShowImportModal(true)} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={() => { setImportFile(null); setImportResult(null); setImportError(null); setShowImportModal(true); }} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaUpload /> Import
           </button>
           <button onClick={() => setShowExportModal(true)} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -226,48 +236,193 @@ export default function PatientList() {
       {/* Import Modal */}
       {showImportModal && (
         <div className="modal-overlay" onClick={() => !importing && setShowImportModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ background: '#fff', width: '90%', maxWidth: '500px', borderRadius: '12px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ background: '#fff', width: '90%', maxWidth: '550px', borderRadius: '12px', padding: '24px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
               <h3 style={{ margin: 0 }}>Import Patients</h3>
               <button onClick={() => !importing && setShowImportModal(false)} className="btn btn-ghost" style={{ padding: 4 }}><FaTimes/></button>
             </div>
             
-            <div style={{ marginBottom: 20, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              <p style={{ marginBottom: 12 }}>Upload a CSV file containing patient records. Existing patients (matched by phone number) will be updated.</p>
-              
-              <div style={{ background: 'var(--bg-secondary, #f8f9fa)', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Expected CSV Columns:</h4>
-                <ul style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <li><strong>First Name</strong> <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>*Required</span></li>
-                  <li><strong>Last Name</strong> <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>*Required</span></li>
-                  <li><strong>Phone</strong> <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>*Required</span> (10 digits)</li>
-                  <li><strong>Email</strong> (Optional, valid email format)</li>
-                  <li><strong>Gender</strong> (Optional, e.g., male, female, other)</li>
-                  <li><strong>Blood Group</strong> (Optional, e.g., O+, A-, B+)</li>
-                  <li><strong>Address</strong> (Optional)</li>
-                </ul>
-              </div>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+              {importError && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: '0.9rem' }}>
+                  <strong>Error:</strong> {importError}
+                </div>
+              )}
 
-              <button onClick={downloadTemplate} type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', padding: 0, fontWeight: 600 }}>
-                Download Template CSV
-              </button>
+              {importing ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div className="spinner" style={{ margin: '0 auto 16px auto' }} />
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Processing and importing your patient data, please wait...</p>
+                </div>
+              ) : importResult ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ background: '#ecfdf5', border: '1px solid #d1fae5', color: '#065f46', padding: '16px', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600 }}>Import Completed!</h4>
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>{importResult.message}</p>
+                  </div>
+
+                  {/* Summary counts */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
+                    <div style={{ background: '#f3f4f6', padding: '12px 8px', borderRadius: 8 }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{importResult.total_rows || 0}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Total Rows</div>
+                    </div>
+                    <div style={{ background: '#ecfdf5', padding: '12px 8px', borderRadius: 8 }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>{importResult.created || 0}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: 2 }}>Created</div>
+                    </div>
+                    <div style={{ background: '#eff6ff', padding: '12px 8px', borderRadius: 8 }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#2563eb' }}>{importResult.updated || 0}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: 2 }}>Updated</div>
+                    </div>
+                  </div>
+
+                  {/* Mapped columns */}
+                  {importResult.detected_columns && (
+                    <div>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 600 }}>Column Mapping Results</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {Object.entries(importResult.detected_columns).map(([col, target]) => (
+                          <span 
+                            key={col} 
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 500,
+                              background: target === '(ignored)' ? '#f3f4f6' : '#d1fae5',
+                              color: target === '(ignored)' ? '#6b7280' : '#065f46',
+                              border: target === '(ignored)' ? '1px solid #e5e7eb' : '1px solid #a7f3d0'
+                            }}
+                          >
+                            {col} &rarr; {target}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skipped rows */}
+                  {importResult.skipped && importResult.skipped.length > 0 && (
+                    <div>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#d97706', fontWeight: 600 }}>
+                        Skipped Rows ({importResult.skipped_count})
+                      </h4>
+                      <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #fde68a', borderRadius: '6px', padding: '8px 12px', background: '#fffbeb', fontSize: '0.8rem', color: '#92400e' }}>
+                        {importResult.skipped.map((s, idx) => (
+                          <div key={idx} style={{ padding: '3px 0', borderBottom: idx < importResult.skipped.length - 1 ? '1px solid #fef3c7' : 'none' }}>
+                            <strong>Row {s.row}:</strong> {s.reason}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Failed/Error rows */}
+                  {importResult.errors && importResult.errors.length > 0 && (
+                    <div>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#dc2626', fontWeight: 600 }}>
+                        Failed Rows ({importResult.error_count})
+                      </h4>
+                      <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #fca5a5', borderRadius: '6px', padding: '8px 12px', background: '#fef2f2', fontSize: '0.8rem', color: '#991b1b' }}>
+                        {importResult.errors.map((e, idx) => (
+                          <div key={idx} style={{ padding: '3px 0', borderBottom: idx < importResult.errors.length - 1 ? '1px solid #fee2e2' : 'none' }}>
+                            <strong>Row {e.row}:</strong> {e.error}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                    <button 
+                      onClick={() => { setImportResult(null); setImportFile(null); setImportError(null); }} 
+                      className="btn btn-outline" 
+                      style={{ flex: 1 }}
+                    >
+                      Import Another File
+                    </button>
+                    <button 
+                      onClick={() => setShowImportModal(false)} 
+                      className="btn btn-primary" 
+                      style={{ flex: 1 }}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: 20, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    <p style={{ marginBottom: 12 }}>Upload a CSV (.csv) or Excel (.xlsx) file containing patient records. Existing patients (matched by phone number) will be updated dynamically.</p>
+                    
+                    <div style={{ background: 'var(--bg-secondary, #f8f9fa)', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>Supported Columns:</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.82rem' }}>
+                        <div>
+                          <strong>First Name</strong> <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>*Required</span>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>or Name / Patient Name</div>
+                        </div>
+                        <div>
+                          <strong>Last Name</strong> <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>*Required</span>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>optional if full name provided</div>
+                        </div>
+                        <div>
+                          <strong>Phone</strong> <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>*Required</span>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>10 digits (mobile, contact)</div>
+                        </div>
+                        <div>
+                          <strong>Gender</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>male/female/other (m/f)</div>
+                        </div>
+                        <div>
+                          <strong>Age / DOB</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>age in years or date of birth</div>
+                        </div>
+                        <div>
+                          <strong>Problem</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>diagnosis / chief complaint</div>
+                        </div>
+                        <div>
+                          <strong>Medicine</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>past medications / history</div>
+                        </div>
+                        <div>
+                          <strong>Refer By</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>referred by person or source</div>
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <strong>Duration of Pain</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>appended to chief complaint</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button onClick={downloadTemplate} type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', padding: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FaDownload size={12} /> Download Template CSV
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>Select File</label>
+                      <input 
+                        type="file" 
+                        accept=".csv,.xlsx,.xls"
+                        className="input" 
+                        onChange={e => setImportFile(e.target.files[0])} 
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} disabled={!importFile}>
+                      Upload & Import
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
-
-            <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="form-group">
-                <label className="form-label">Select CSV File</label>
-                <input 
-                  type="file" 
-                  accept=".csv"
-                  className="input" 
-                  onChange={e => setImportFile(e.target.files[0])} 
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} disabled={!importFile || importing}>
-                {importing ? 'Importing...' : 'Upload & Import'}
-              </button>
-            </form>
           </div>
         </div>
       )}

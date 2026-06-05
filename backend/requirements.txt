@@ -35,3 +35,6 @@ gunicorn==23.0.0
 
 # Static file serving in production
 whitenoise==6.9.0
+
+# Excel file support (patient import)
+openpyxl==3.1.5
