@@ -31,6 +31,7 @@ export default function StaffList() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
@@ -83,19 +84,40 @@ export default function StaffList() {
           }
         : EMPTY_FORM
     );
+    setSaveError('');
     setShowPassword(false);
     setShowConfirmPassword(false);
     setActiveTab('account');
     setShowModal(true);
   };
 
+  const extractError = (err) => {
+    const d = err.response?.data;
+    if (!d) {
+      const status = err.response?.status;
+      if (status === 500) return 'Server error — please try again in a moment.';
+      if (status === 400) return 'Invalid data submitted. Check all fields.';
+      if (status === 403) return 'You do not have permission to perform this action.';
+      return err.message || 'Network error — check your connection.';
+    }
+    if (typeof d === 'string') return d;
+    // Django REST field errors: { field: ["msg"] } or { detail: "msg" }
+    if (d.detail) return d.detail;
+    if (d.non_field_errors) return d.non_field_errors[0];
+    const fieldErrors = Object.entries(d)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`)
+      .join(' | ');
+    return fieldErrors || 'Failed to save.';
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (form.password && form.password !== form.confirm_password) {
-      alert('Passwords do not match!');
+      setSaveError('Passwords do not match!');
       return;
     }
     setSaving(true);
+    setSaveError('');
     const payload = { ...form };
 
     // When editing and not changing password, don't send either field
@@ -114,7 +136,7 @@ export default function StaffList() {
       setShowModal(false);
       fetchData();
     } catch (err) {
-      alert(JSON.stringify(err.response?.data) || 'Failed to save.');
+      setSaveError(extractError(err));
     } finally {
       setSaving(false);
     }
@@ -475,6 +497,24 @@ export default function StaffList() {
                         </span>
                       </span>
                     </div>
+                  </div>
+                )}
+
+                {saveError && (
+                  <div style={{
+                    margin: '0 0 12px 0',
+                    padding: '10px 14px',
+                    background: 'rgba(220,38,38,0.08)',
+                    border: '1px solid rgba(220,38,38,0.3)',
+                    borderRadius: 8,
+                    color: 'var(--danger, #dc2626)',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                  }}>
+                    <span style={{ flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                    <span>{saveError}</span>
                   </div>
                 )}
 
