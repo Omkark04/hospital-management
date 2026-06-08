@@ -73,6 +73,10 @@ COLUMN_MAP = {
     'patient name': 'full_name',
     'name': 'full_name',
     'patient_name': 'full_name',
+    'patient': 'full_name',
+    'patientname': 'full_name',
+    'full name': 'full_name',
+    'fullname': 'full_name',
     # Phone
     'phone': 'phone',
     'mobile': 'phone',
@@ -82,9 +86,18 @@ COLUMN_MAP = {
     'contact': 'phone',
     'contact number': 'phone',
     'phone number': 'phone',
+    'mobile num': 'phone',
+    'mobile no': 'phone',
+    'mobile no.': 'phone',
+    'phone no': 'phone',
+    'phone no.': 'phone',
+    'contact no': 'phone',
+    'contact no.': 'phone',
+    'mob': 'phone',
     # Email
     'email': 'email',
     'email address': 'email',
+    'email_address': 'email',
     # Gender
     'gender': 'gender',
     'sex': 'gender',
@@ -97,27 +110,41 @@ COLUMN_MAP = {
     'address': 'address',
     # Age
     'age': 'age',
+    'ag': 'age',
     # Date of Birth
     'date of birth': 'dob',
     'dob': 'dob',
     'birth date': 'dob',
+    'birth_date': 'dob',
     # Problem / Chief Complaint
     'problem': 'chief_complaint',
     'diagnosis': 'chief_complaint',
     'chief complaint': 'chief_complaint',
     'chief_complaint': 'chief_complaint',
     'problem details': 'chief_complaint',
+    'complaint': 'chief_complaint',
+    'complaints': 'chief_complaint',
+    'symptoms': 'chief_complaint',
+    'disease': 'chief_complaint',
+    'diseases': 'chief_complaint',
     # Medicine / Medical History
     'medicine': 'medical_history',
     'medication': 'medical_history',
     'medical history': 'medical_history',
     'medical_history': 'medical_history',
+    'past medicine': 'medical_history',
+    'past history': 'medical_history',
+    'past medical history': 'medical_history',
+    'medicines': 'medical_history',
+    'meds': 'medical_history',
     # Referral
     'refer by': 'referral_source',
     'referred by': 'referral_source',
     'referral': 'referral_source',
     'referral source': 'referral_source',
     'referral_source': 'referral_source',
+    'referred': 'referral_source',
+    'refer': 'referral_source',
     # Duration
     'duration of pain': 'duration',
     'duration': 'duration',
@@ -224,7 +251,12 @@ class PatientImportView(APIView):
             return Response({'error': 'No file uploaded'}, status=400)
 
         filename = file_obj.name.lower()
-        is_excel = filename.endswith(('.xlsx', '.xls'))
+        if filename.endswith('.xls'):
+            return Response({
+                'error': 'Old Excel format (.xls) is not supported. Please save your file as .xlsx or .csv and try again.'
+            }, status=400)
+
+        is_excel = filename.endswith('.xlsx')
         is_csv = filename.endswith('.csv')
 
         if not (is_csv or is_excel):
@@ -283,7 +315,17 @@ class PatientImportView(APIView):
                     mapped = {}
                     for original_header, internal_key in field_map.items():
                         val = row.get(original_header, '')
-                        mapped[internal_key] = str(val).strip() if val else ''
+                        if val is None:
+                            mapped[internal_key] = ''
+                        elif isinstance(val, (datetime, date)):
+                            mapped[internal_key] = val
+                        elif isinstance(val, float):
+                            if val.is_integer():
+                                mapped[internal_key] = str(int(val))
+                            else:
+                                mapped[internal_key] = str(val).strip()
+                        else:
+                            mapped[internal_key] = str(val).strip()
 
                     # Phone is required
                     phone = clean_phone(mapped.get('phone', ''))
@@ -302,22 +344,33 @@ class PatientImportView(APIView):
                         continue
 
                     # Gender
-                    gender = parse_gender(mapped.get('gender', '')) or 'other'
+                    gender = parse_gender(str(mapped.get('gender', '')) if mapped.get('gender') else '') or 'other'
 
                     # DOB: prefer explicit DOB, fallback to age calculation
                     dob = None
                     if mapped.get('dob'):
-                        try:
-                            dob_str = mapped['dob']
-                            # Try various date formats
-                            for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%y'):
-                                try:
-                                    dob = datetime.strptime(dob_str, fmt).date()
-                                    break
-                                except ValueError:
-                                    continue
-                        except (ValueError, TypeError):
-                            pass
+                        dob_val = mapped['dob']
+                        if isinstance(dob_val, (datetime, date)):
+                            if isinstance(dob_val, datetime):
+                                dob = dob_val.date()
+                            else:
+                                dob = dob_val
+                        else:
+                            try:
+                                dob_str = str(dob_val).strip()
+                                # Try various date formats
+                                for fmt in (
+                                    '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%y',
+                                    '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
+                                    '%Y-%m-%dT%H:%M:%S.%fZ', '%d/%m/%y', '%m/%d/%y'
+                                ):
+                                    try:
+                                        dob = datetime.strptime(dob_str, fmt).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                            except (ValueError, TypeError):
+                                pass
                     if not dob and mapped.get('age'):
                         dob = age_to_dob(mapped['age'])
 
@@ -337,26 +390,26 @@ class PatientImportView(APIView):
 
                     # Build defaults dict
                     defaults = {
-                        'first_name': first_name,
-                        'last_name': last_name,
+                        'first_name': str(first_name).strip()[:100],
+                        'last_name': str(last_name).strip()[:100],
                         'gender': gender,
                     }
 
                     # Only set optional fields if they have values (don't overwrite with blanks)
-                    if mapped.get('email') and '@' in mapped['email']:
-                        defaults['email'] = mapped['email']
+                    if mapped.get('email') and '@' in str(mapped['email']):
+                        defaults['email'] = str(mapped['email']).strip()[:254]
                     if mapped.get('blood_group'):
-                        defaults['blood_group'] = mapped['blood_group']
+                        defaults['blood_group'] = str(mapped['blood_group']).strip()[:10]
                     if mapped.get('address'):
-                        defaults['address'] = mapped['address']
+                        defaults['address'] = str(mapped['address']).strip()
                     if dob:
                         defaults['dob'] = dob
                     if chief_complaint:
-                        defaults['chief_complaint'] = chief_complaint
+                        defaults['chief_complaint'] = str(chief_complaint).strip()
                     if medical_history:
-                        defaults['medical_history'] = medical_history
+                        defaults['medical_history'] = str(medical_history).strip()
                     if referral_source:
-                        defaults['referral_source'] = referral_source
+                        defaults['referral_source'] = str(referral_source).strip()[:255]
 
                     # Check for existing patient by phone in this branch
                     existing = Patient.objects.filter(phone=phone, branch=branch).first()

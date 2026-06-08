@@ -52,6 +52,7 @@ const EnquiryList     = lazy(() => import('./pages/dashboard/owner/EnquiryList')
 const ReferralList    = lazy(() => import('./pages/dashboard/shared/ReferralList'));
 const ProfilePage     = lazy(() => import('./pages/dashboard/shared/ProfilePage'));
 const MyCampaigns     = lazy(() => import('./pages/dashboard/shared/MyCampaigns'));
+const NotificationCenter = lazy(() => import('./pages/dashboard/shared/NotificationCenter'));
 const ReviewManage    = lazy(() => import('./pages/dashboard/owner/ReviewManage'));
 const MyBills         = lazy(() => import('./pages/dashboard/patient/MyBills'));
 const PatientReferral = lazy(() => import('./pages/dashboard/patient/PatientReferral'));
@@ -111,6 +112,7 @@ export default function App() {
               <Route path="leaves" element={<LeaveList />} />
               <Route path="payroll" element={<PayrollList />} />
               <Route path="referrals" element={<ReferralList />} />
+              <Route path="notifications" element={<NotificationCenter />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="my-campaigns" element={<MyCampaigns />} />
               <Route path="inventory" element={<Inventory />} />

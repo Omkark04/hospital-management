@@ -1,23 +1,16 @@
 """
-SendGrid email service for HMS.
+Email notification service for HMS.
 
-Usage:
-    from notifications.email import send_email
-
-    send_email(
-        to_email='patient@example.com',
-        to_name='John Doe',
-        subject='Appointment Reminder',
-        html_content='<p>Your appointment is tomorrow at 10:00 AM.</p>',
-        notification_type='appointment_reminder',
-        recipient_user=user_instance,  # optional
-    )
-
-All sends are logged to the Notification model.
-If SENDGRID_API_KEY is blank (dev mode), emails are NOT sent but are logged as PENDING.
+All sends are logged to the Notification model. Delivery uses Django's
+configured EMAIL_BACKEND, so SMTP, SendGrid SMTP, and console development
+backends all flow through the same code.
 """
 
+from email.utils import formataddr
+
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.defaultfilters import striptags
 from django.utils import timezone
 
 
@@ -30,7 +23,7 @@ def send_email(
     recipient_user=None,
 ):
     """
-    Send an email via SendGrid and log it to the Notification model.
+    Send an email using Django's configured email backend and log it.
 
     Args:
         to_email: Recipient email address.
@@ -55,44 +48,44 @@ def send_email(
         status=NotificationStatus.PENDING,
     )
 
-    api_key = settings.SENDGRID_API_KEY
-    if not api_key:
-        # Dev mode: log as pending, skip actual send
-        notification.error_message = 'SENDGRID_API_KEY not set — email not sent (dev mode).'
-        notification.save()
-        return notification
-
     try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail, Email, To, Content
+        from_name = getattr(settings, 'DEFAULT_FROM_NAME', '')
+        from_address = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        from_email = formataddr((from_name, from_address)) if from_name else from_address
+        plain_message = striptags(html_content) or html_content
 
-        sg = sendgrid.SendGridAPIClient(api_key=api_key)
-        from_email = Email(settings.DEFAULT_FROM_EMAIL, settings.DEFAULT_FROM_NAME)
-        to = To(to_email, to_name) if to_name else To(to_email)
-        content = Content('text/html', html_content)
-        mail = Mail(from_email, to, subject, content)
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=from_email,
+            to=[to_email],
+        )
+        email.attach_alternative(html_content, 'text/html')
 
-        response = sg.client.mail.send.post(request_body=mail.get())
-
-        if response.status_code in (200, 202):
+        sent_count = email.send(fail_silently=False)
+        if sent_count:
             notification.status = NotificationStatus.SENT
             notification.sent_at = timezone.now()
         else:
             notification.status = NotificationStatus.FAILED
-            notification.error_message = f'SendGrid returned status {response.status_code}'
+            notification.error_message = 'Email backend did not accept the message.'
 
-    except Exception as e:
+    except Exception as exc:
         notification.status = NotificationStatus.FAILED
-        notification.error_message = str(e)
+        notification.error_message = str(exc)
 
     notification.save()
     return notification
 
 
-# ─────────────────── Template helpers ────────────────────────
-
-def send_appointment_reminder(patient_name: str, patient_email: str, appointment_date: str, appointment_time: str, doctor_name: str):
-    subject = f'Appointment Reminder — {appointment_date}'
+def send_appointment_reminder(
+    patient_name: str,
+    patient_email: str,
+    appointment_date: str,
+    appointment_time: str,
+    doctor_name: str,
+):
+    subject = f'Appointment Reminder - {appointment_date}'
     html_content = f"""
     <h2>Appointment Reminder</h2>
     <p>Dear {patient_name},</p>
@@ -107,16 +100,22 @@ def send_appointment_reminder(patient_name: str, patient_email: str, appointment
     return send_email(patient_email, subject, html_content, patient_name, 'appointment_reminder')
 
 
-def send_bill_notification(patient_name: str, patient_email: str, bill_id: int, amount: float, balance_due: float):
-    subject = f'Bill #{bill_id} — Hospital Management System'
+def send_bill_notification(
+    patient_name: str,
+    patient_email: str,
+    bill_id: int,
+    amount: float,
+    balance_due: float,
+):
+    subject = f'Bill #{bill_id} - Hospital Management System'
     html_content = f"""
     <h2>Bill Generated</h2>
     <p>Dear {patient_name},</p>
     <p>Your bill has been generated:</p>
     <ul>
         <li><strong>Bill ID:</strong> #{bill_id}</li>
-        <li><strong>Total Amount:</strong> ₹{amount}</li>
-        <li><strong>Balance Due:</strong> ₹{balance_due}</li>
+        <li><strong>Total Amount:</strong> Rs. {amount}</li>
+        <li><strong>Balance Due:</strong> Rs. {balance_due}</li>
     </ul>
     <p>Please contact the reception for payment.<br>Thank you.</p>
     """
