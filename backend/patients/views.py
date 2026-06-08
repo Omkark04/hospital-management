@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 
 from users.models import UserRole
 from users.permissions import (
@@ -68,23 +69,42 @@ class PatientListCreateView(generics.ListCreateAPIView):
             ) | qs.filter(
                 phone__icontains=search
             )
+
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            valid_orderings = ('created_at', '-created_at', 'first_name', '-first_name', 'uhid', '-uhid')
+            if ordering in valid_orderings:
+                if ordering == 'first_name':
+                    qs = qs.order_by('first_name', 'last_name')
+                elif ordering == '-first_name':
+                    qs = qs.order_by('-first_name', '-last_name')
+                else:
+                    qs = qs.order_by(ordering)
         return qs
 
     def perform_create(self, serializer):
         user = self.request.user
-        # Auto-assign branch from the logged-in user if not provided in payload.
-        # This prevents 400 errors when frontend omits branch (e.g., after page reload).
-        branch = None
+        from branches.models import Branch
+
         if user.branch_id:
-            from branches.models import Branch
-            try:
-                branch = Branch.objects.get(pk=user.branch_id)
-            except Branch.DoesNotExist:
-                pass
-        if branch:
+            serializer.save(registered_by=user, branch_id=user.branch_id)
+            return
+
+        if user.role == UserRole.OWNER:
+            branch = serializer.validated_data.get('branch')
+            owner_branches = Branch.objects.filter(hospital__owner=user, is_active=True)
+
+            if branch and not owner_branches.filter(pk=branch.pk).exists():
+                raise ValidationError({'branch': ['Select a branch from your hospital.']})
+
+            branch = branch or owner_branches.first()
+            if not branch:
+                raise ValidationError({'branch': ['Create a branch before registering patients.']})
+
             serializer.save(registered_by=user, branch=branch)
-        else:
-            serializer.save(registered_by=user)
+            return
+
+        raise ValidationError({'branch': ['Cannot determine branch for this user.']})
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -343,3 +363,18 @@ class PublicBookAppointmentView(APIView):
         )
 
         return Response({'message': 'Appointment booked successfully', 'appointment_id': appointment.id}, status=status.HTTP_201_CREATED)
+
+
+class PatientBulkDeleteView(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def post(self, request, *args, **kwargs):
+        patient_ids = request.data.get('patient_ids', [])
+        if not patient_ids:
+            return Response({'error': 'No patient IDs provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = Patient.objects.filter(id__in=patient_ids, is_active=True)
+        qs = branch_filtered_queryset(qs, request.user)
+
+        count = qs.update(is_active=False)
+        return Response({'detail': f'Successfully deactivated {count} patients.'}, status=status.HTTP_200_OK)

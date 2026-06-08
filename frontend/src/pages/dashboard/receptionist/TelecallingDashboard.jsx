@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaPhoneAlt, FaWhatsapp, FaSms, FaSearch, FaHistory, FaTimes, FaDownload, FaStickyNote } from 'react-icons/fa';
 import { getPatients } from '../../../api/patients';
 import { getQuickNotes, createCallLog, getCallLogs } from '../../../api/telecalling';
 
+const PATIENTS_PER_PAGE = 20;
+
 export default function TelecallingDashboard() {
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [quickNotes, setQuickNotes] = useState([]);
   const [callLogs, setCallLogs] = useState({}); // mapped by patientId
@@ -18,15 +23,37 @@ export default function TelecallingDashboard() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportDates, setExportDates] = useState({ start: '', end: '' });
 
-  useEffect(() => {
-    Promise.all([getPatients(), getQuickNotes()])
-      .then(([p, q]) => {
-        setPatients(p.data.results || p.data);
-        setQuickNotes(q.data.results || q.data);
+  const fetchPatients = useCallback(() => {
+    setLoading(true);
+    getPatients({ search: debouncedSearch || undefined, page, ordering: 'first_name' })
+      .then(({ data }) => {
+        const rows = data.results || data;
+        setPatients(rows);
+        setTotalCount(data.count || rows.length);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, [debouncedSearch, page]);
+
+  useEffect(() => {
+    getQuickNotes()
+      .then(({ data }) => {
+        setQuickNotes(data.results || data);
+      })
+      .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchHistory = async (patientId) => {
     try {
@@ -83,11 +110,8 @@ export default function TelecallingDashboard() {
     }
   };
 
-  const filteredPatients = patients.filter(p => 
-    p.first_name.toLowerCase().includes(search.toLowerCase()) || 
-    p.last_name?.toLowerCase().includes(search.toLowerCase()) || 
-    p.phone.includes(search)
-  );
+  const totalPages = Math.max(1, Math.ceil(totalCount / PATIENTS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
 
   const handleExport = async (e) => {
     e.preventDefault();
@@ -127,17 +151,17 @@ export default function TelecallingDashboard() {
           placeholder="Search patients by name or phone..." 
           style={{ paddingLeft: 40, width: '100%' }}
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
         />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>Loading patients...</div>
-        ) : filteredPatients.length === 0 ? (
+        ) : patients.length === 0 ? (
           <div className="card card-body" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No patients found.</div>
         ) : (
-          filteredPatients.map(p => (
+          patients.map(p => (
             <div key={p.id} className="card card-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -183,6 +207,23 @@ export default function TelecallingDashboard() {
           ))
         )}
       </div>
+
+      {!loading && totalCount > 0 && (
+        <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing {(currentPage - 1) * PATIENTS_PER_PAGE + 1}-{Math.min(currentPage * PATIENTS_PER_PAGE, totalCount)} of {totalCount} patients
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-ghost btn-sm" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              Prev
+            </button>
+            <span className="btn btn-ghost btn-sm">{currentPage} / {totalPages}</span>
+            <button className="btn btn-ghost btn-sm" disabled={currentPage === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Action & Logging Modal */}
       {activeModal && (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getPatients, deletePatient } from '../../../api/patients';
+import { getPatients, deletePatient, bulkDeletePatients } from '../../../api/patients';
 import { FaDownload, FaUpload, FaTimes, FaUsers, FaHistory, FaPhone, FaMapMarkerAlt, FaFileInvoice, FaUserCircle, FaPrescriptionBottleAlt, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../../context/AuthContext';
 import { getPrescriptions } from '../../../api/medicines';
@@ -13,6 +13,9 @@ export default function PatientList() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortKey, setSortKey] = useState('-created_at');
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportDates, setExportDates] = useState({ start: '', end: '' });
@@ -28,14 +31,15 @@ export default function PatientList() {
 
   const fetchPatients = useCallback(() => {
     setLoading(true);
-    getPatients({ search: search || undefined, page })
+    getPatients({ search: search || undefined, page, ordering: sortKey })
       .then(({ data }) => {
         setPatients(data.results || data);
         setTotalCount(data.count || (data.results || data).length);
+        setSelectedIds([]);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, [search, page, sortKey]);
 
   useEffect(() => { fetchPatients(); }, [fetchPatients]);
 
@@ -46,6 +50,38 @@ export default function PatientList() {
       fetchPatients();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to remove patient.');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.length;
+    if (count === 0) return;
+    if (!window.confirm(`Are you sure you want to remove the ${count} selected patients? This will deactivate their profiles.`)) return;
+    try {
+      setLoading(true);
+      await bulkDeletePatients(selectedIds);
+      setSelectedIds([]);
+      fetchPatients();
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.detail || 'Failed to bulk remove patients.');
+      setLoading(false);
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const activeIds = patients.map(p => p.id);
+      setSelectedIds(activeIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
     }
   };
 
@@ -64,7 +100,7 @@ export default function PatientList() {
       link.click();
       link.remove();
       setShowExportModal(false);
-    } catch (err) {
+    } catch {
       alert("Failed to export patients");
     }
   };
@@ -72,6 +108,12 @@ export default function PatientList() {
   const handleImport = async (e) => {
     e.preventDefault();
     if (!importFile) return alert("Please select a file.");
+    
+    console.log("=== Patient Import Started ===");
+    console.log("File Name:", importFile.name);
+    console.log("File Size:", importFile.size, "bytes");
+    console.log("File Type:", importFile.type);
+    
     setImporting(true);
     setImportError(null);
     setImportResult(null);
@@ -79,11 +121,20 @@ export default function PatientList() {
       const { importPatients } = await import('../../../api/patients');
       const formData = new FormData();
       formData.append('file', importFile);
+      
+      console.log("Sending import request with FormData...");
       const res = await importPatients(formData);
+      console.log("Import request response:", res);
       setImportResult(res.data);
       fetchPatients(); // refresh list
     } catch (err) {
-      setImportError(err.response?.data?.error || "Failed to import patients");
+      console.error("Import request failed:", err);
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+        console.error("Response headers:", err.response.headers);
+      }
+      setImportError(err.response?.data?.error || err.response?.data?.detail || "Failed to import patients");
     } finally {
       setImporting(false);
     }
@@ -107,12 +158,12 @@ export default function PatientList() {
 
   const downloadTemplate = () => {
     const headers = [
-      'First Name', 'Last Name', 'Email', 'Phone', 'Gender', 'Blood Group',
-      'Address', 'Age', 'Problem', 'Refer By', 'Medicine', 'Duration of Pain'
+      'Patient Name', 'Weight', 'Age', 'Mobile Number', 'Address', 'Gender',
+      'Medicine', 'Amount', 'Date', 'Problem', 'Refer By', 'Duration of Pain'
     ].join(',');
     const sampleRow = [
-      'John', 'Doe', 'john@example.com', '9876543210', 'male', 'O+',
-      '123 Street Address', '45', 'Chronic back pain', 'Dr. Smith', 'Aspirin', '6 months'
+      'John Doe', '72', '45', '9876543210', '123 Street Address', 'male',
+      'Aspirin', '500', '2026-06-08', 'Chronic back pain', 'Dr. Smith', '6 months'
     ].join(',');
     const csvContent = `data:text/csv;charset=utf-8,${headers}\n${sampleRow}`;
     const encodedUri = encodeURI(csvContent);
@@ -123,6 +174,8 @@ export default function PatientList() {
     link.click();
     link.remove();
   };
+
+  const canDelete = user?.role === 'owner' || user?.role === 'receptionist';
 
   return (
     <div>
@@ -135,19 +188,65 @@ export default function PatientList() {
             placeholder="Search by name, phone, UHID..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{ maxWidth: 320 }}
+            style={{ maxWidth: 300 }}
           />
+          <select
+            className="input"
+            value={sortKey}
+            onChange={e => { setSortKey(e.target.value); setPage(1); }}
+            style={{ maxWidth: 180, cursor: 'pointer' }}
+          >
+            <option value="-created_at">Newest Registered</option>
+            <option value="created_at">Oldest Registered</option>
+            <option value="first_name">Name (A-Z)</option>
+            <option value="-first_name">Name (Z-A)</option>
+            <option value="uhid">UHID (Ascending)</option>
+            <option value="-uhid">UHID (Descending)</option>
+          </select>
           <button onClick={() => { setImportFile(null); setImportResult(null); setImportError(null); setShowImportModal(true); }} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaUpload /> Import
           </button>
           <button onClick={() => setShowExportModal(true)} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaDownload /> Export
           </button>
-          {(user?.role === 'owner' || user?.role === 'receptionist') && (
+          {canDelete && (
             <Link to="/dashboard/patients/register" className="btn btn-primary">+ Register Patient</Link>
           )}
         </div>
       </div>
+
+      {canDelete && selectedIds.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          marginBottom: '16px'
+        }}>
+          <span style={{ fontSize: '0.9rem', color: '#1e40af', fontWeight: 600 }}>
+            {selectedIds.length} {selectedIds.length === 1 ? 'patient' : 'patients'} selected
+          </span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={handleBulkDelete}
+              className="btn"
+              style={{ background: 'var(--danger, #ef4444)', color: 'white', border: 'none', padding: '6px 16px', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <FaTrash style={{ fontSize: '0.75rem' }} /> Deactivate Selected
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="btn btn-outline"
+              style={{ padding: '6px 16px', fontSize: '0.85rem' }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         {loading ? (
@@ -159,6 +258,16 @@ export default function PatientList() {
             <table>
               <thead>
                 <tr>
+                  {canDelete && (
+                    <th style={{ width: 40 }}>
+                      <input
+                        type="checkbox"
+                        checked={patients.length > 0 && selectedIds.length === patients.length}
+                        onChange={handleSelectAll}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
+                  )}
                   <th>UHID</th>
                   <th>Name</th>
                   <th>Phone</th>
@@ -170,7 +279,17 @@ export default function PatientList() {
               </thead>
               <tbody>
                 {patients.map(p => (
-                  <tr key={p.id}>
+                  <tr key={p.id} style={{ background: selectedIds.includes(p.id) ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}>
+                    {canDelete && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(p.id)}
+                          onChange={e => handleSelectOne(p.id, e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
+                    )}
                     <td><span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.85rem' }}>{p.uhid}</span></td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{p.first_name} {p.last_name}</div>
@@ -183,7 +302,7 @@ export default function PatientList() {
                     <td>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => setSelectedPatient(p)} className="btn btn-ghost btn-sm">View</button>
-                        {(user?.role === 'owner' || user?.role === 'receptionist') && (
+                        {canDelete && (
                           <button onClick={() => handleDelete(p)} className="btn btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Remove</button>
                         )}
                       </div>
@@ -382,6 +501,10 @@ export default function PatientList() {
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>age in years or date of birth</div>
                         </div>
                         <div>
+                          <strong>Weight</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>weight, wt, weight kg</div>
+                        </div>
+                        <div>
                           <strong>Problem</strong>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>diagnosis / chief complaint</div>
                         </div>
@@ -390,12 +513,20 @@ export default function PatientList() {
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>past medications / history</div>
                         </div>
                         <div>
+                          <strong>Amount / Date</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>amount, fee, visit date</div>
+                        </div>
+                        <div>
                           <strong>Refer By</strong>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>referred by person or source</div>
                         </div>
-                        <div style={{ gridColumn: 'span 2' }}>
+                        <div>
                           <strong>Duration of Pain</strong>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>appended to chief complaint</div>
+                        </div>
+                        <div>
+                          <strong>Notes</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>new/old, remarks, patient type</div>
                         </div>
                       </div>
                     </div>

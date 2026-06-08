@@ -109,6 +109,10 @@ class Patient(models.Model):
     interested_treatment = models.ForeignKey(Treatment, on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
     prakriti = models.CharField(max_length=20, choices=PrakritiChoices.choices, default=PrakritiChoices.UNKNOWN)
     chief_complaint = models.TextField(blank=True)
+    weight_kg = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    import_visit_date = models.DateField(null=True, blank=True, help_text='Visit/date captured from imported clinic files')
+    import_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text='Amount captured from imported clinic files')
+    import_notes = models.TextField(blank=True, help_text='Additional details captured from imported clinic files')
 
     # Storage (URLs populated once Cloudinary/Dropbox enabled)
     photo_url = models.URLField(blank=True, help_text='Cloudinary URL')

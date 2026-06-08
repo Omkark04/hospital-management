@@ -6,7 +6,8 @@ from .views import (
     LabReportListCreateView, LabReportDetailView,
     DepartmentListView, TreatmentListView,
     PublicReviewListCreateView, AdminReviewListView, AdminReviewDetailView,
-    PublicAvailableSlotsView, PublicBookAppointmentView
+    PublicAvailableSlotsView, PublicBookAppointmentView,
+    PatientBulkDeleteView
 )
 from .views_export import PatientExportView, PatientImportView
 
@@ -20,6 +21,7 @@ urlpatterns = [
     # Patients
     path('export/', PatientExportView.as_view(), name='patient-export'),
     path('import/', PatientImportView.as_view(), name='patient-import'),
+    path('bulk-delete/', PatientBulkDeleteView.as_view(), name='patient-bulk-delete'),
     path('', PatientListCreateView.as_view(), name='patient-list-create'),
     path('<int:pk>/', PatientDetailView.as_view(), name='patient-detail'),
     path('me/', MyPatientProfileView.as_view(), name='my-profile'),

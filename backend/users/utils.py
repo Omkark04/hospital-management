@@ -32,7 +32,7 @@ def send_registration_email(user, raw_password):
         return False
 
     from_name = getattr(settings, 'DEFAULT_FROM_NAME', 'Hospital Management System')
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hospitalmanagement.com')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'Hospital Management System <contact@spineclinic.in>')
 
     # Build the login URL from settings (falls back to the production URL)
     login_url = getattr(settings, 'FRONTEND_URL', 'https://hospital-management-production-66d3.up.railway.app') + '/login'

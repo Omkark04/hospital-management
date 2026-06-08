@@ -1,6 +1,9 @@
 import csv
 import io
+from decimal import Decimal, InvalidOperation
 from datetime import date, datetime
+from django.db import transaction
+from django.utils import timezone
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,7 +40,8 @@ class PatientExportView(APIView):
         writer.writerow([
             'First Name', 'Last Name', 'Email', 'Phone', 'Date of Birth',
             'Gender', 'Blood Group', 'Address', 'Chief Complaint',
-            'Medical History', 'Referral Source', 'Created At'
+            'Medical History', 'Weight Kg', 'Import Visit Date', 'Import Amount',
+            'Import Notes', 'Referral Source', 'Created At'
         ])
 
         for patient in qs:
@@ -52,6 +56,10 @@ class PatientExportView(APIView):
                 patient.address,
                 patient.chief_complaint,
                 patient.medical_history,
+                patient.weight_kg,
+                patient.import_visit_date,
+                patient.import_amount,
+                patient.import_notes,
                 patient.referral_source,
                 patient.created_at.strftime('%Y-%m-%d %H:%M') if patient.created_at else ''
             ])
@@ -94,6 +102,10 @@ COLUMN_MAP = {
     'contact no': 'phone',
     'contact no.': 'phone',
     'mob': 'phone',
+    'mobile num': 'phone',
+    'mobile no': 'phone',
+    'mobile no.': 'phone',
+    'phone num': 'phone',
     # Email
     'email': 'email',
     'email address': 'email',
@@ -127,6 +139,7 @@ COLUMN_MAP = {
     'symptoms': 'chief_complaint',
     'disease': 'chief_complaint',
     'diseases': 'chief_complaint',
+    'pain': 'chief_complaint',
     # Medicine / Medical History
     'medicine': 'medical_history',
     'medication': 'medical_history',
@@ -137,6 +150,8 @@ COLUMN_MAP = {
     'past medical history': 'medical_history',
     'medicines': 'medical_history',
     'meds': 'medical_history',
+    'current medicine': 'medical_history',
+    'prescribed medicine': 'medical_history',
     # Referral
     'refer by': 'referral_source',
     'referred by': 'referral_source',
@@ -149,6 +164,31 @@ COLUMN_MAP = {
     'duration of pain': 'duration',
     'duration': 'duration',
     'duration of pac': 'duration',
+    'duration pain': 'duration',
+    # Clinic import fields
+    'weight': 'weight_kg',
+    'wt': 'weight_kg',
+    'weight kg': 'weight_kg',
+    'weight (kg)': 'weight_kg',
+    'kg': 'weight_kg',
+    'amount': 'import_amount',
+    'total amount': 'import_amount',
+    'fee': 'import_amount',
+    'fees': 'import_amount',
+    'fe': 'import_amount',
+    'charges': 'import_amount',
+    'date': 'import_visit_date',
+    'visit date': 'import_visit_date',
+    'consultation date': 'import_visit_date',
+    'registration date': 'import_visit_date',
+    'new': 'import_notes',
+    'new old': 'import_notes',
+    'new/old': 'import_notes',
+    'case type': 'import_notes',
+    'patient type': 'import_notes',
+    'remarks': 'import_notes',
+    'remark': 'import_notes',
+    'notes': 'import_notes',
 }
 
 
@@ -184,7 +224,13 @@ def clean_phone(phone_str):
     """Extract 10-digit phone number from various formats."""
     if not phone_str:
         return ''
-    digits = ''.join(c for c in str(phone_str) if c.isdigit())
+    raw = str(phone_str).strip()
+    if 'e' in raw.lower():
+        try:
+            raw = str(int(Decimal(raw)))
+        except (InvalidOperation, ValueError):
+            pass
+    digits = ''.join(c for c in raw if c.isdigit())
     # Handle 91XXXXXXXXXX format
     if len(digits) == 12 and digits.startswith('91'):
         digits = digits[2:]
@@ -192,6 +238,38 @@ def clean_phone(phone_str):
     if len(digits) > 10 and digits.startswith('91'):
         digits = digits[2:]
     return digits[:15]  # max_length of phone field
+
+
+def parse_decimal(value):
+    if value in (None, ''):
+        return None
+    raw = str(value).strip().replace(',', '').replace('₹', '').replace('Rs.', '').replace('Rs', '')
+    if not raw:
+        return None
+    try:
+        return Decimal(raw)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def parse_import_date(value):
+    if value in (None, ''):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    raw = str(value).strip()
+    for fmt in (
+        '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%y', '%d/%m/%y',
+        '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%fZ',
+    ):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def split_name(full_name):
@@ -202,6 +280,23 @@ def split_name(full_name):
     first = parts[0].title()
     last = ' '.join(parts[1:]).title() if len(parts) > 1 else ''
     return (first, last)
+
+
+def get_next_uhid_sequence(branch):
+    """Return the next UHID prefix and sequence for this branch/year."""
+    prefix = f"{branch.code}-{timezone.now().year}-"
+    last_uhid = (
+        Patient.objects.filter(uhid__startswith=prefix)
+        .order_by('-uhid')
+        .values_list('uhid', flat=True)
+        .first()
+    )
+    if not last_uhid:
+        return prefix, 1
+    try:
+        return prefix, int(last_uhid.split('-')[-1]) + 1
+    except (ValueError, IndexError):
+        return prefix, 1
 
 
 def read_csv_rows(file_obj):
@@ -303,34 +398,62 @@ class PatientImportView(APIView):
                     'error': 'Cannot determine branch. Please ensure your account is linked to a branch.'
                 }, status=400)
 
+            phone_headers = [
+                original_header
+                for original_header, internal_key in field_map.items()
+                if internal_key == 'phone'
+            ]
+            import_phones = set()
+            for row in rows:
+                for phone_header in phone_headers:
+                    phone = clean_phone(row.get(phone_header, ''))
+                    if phone and len(phone) >= 10:
+                        import_phones.add(phone)
+                        break
+
+            existing_by_phone = {
+                patient.phone: patient
+                for patient in Patient.objects.filter(phone__in=import_phones, branch=branch)
+            }
+            uhid_prefix, next_uhid_sequence = get_next_uhid_sequence(branch)
+
             # ── 4. Process each row ───────────────────────────
             created_count = 0
             updated_count = 0
             skipped_rows = []
             errors = []
+            patients_to_create = []
+            patients_to_update = {}
+            update_fields = set()
 
             for row_num, row in enumerate(rows, start=2):  # start=2 because row 1 is header
                 try:
                     # Extract mapped values
                     mapped = {}
+                    import_note_parts = []
                     for original_header, internal_key in field_map.items():
                         val = row.get(original_header, '')
                         if val is None:
-                            mapped[internal_key] = ''
+                            normalized_val = ''
                         elif isinstance(val, (datetime, date)):
-                            mapped[internal_key] = val
+                            normalized_val = val
                         elif isinstance(val, float):
                             if val.is_integer():
-                                mapped[internal_key] = str(int(val))
+                                normalized_val = str(int(val))
                             else:
-                                mapped[internal_key] = str(val).strip()
+                                normalized_val = str(val).strip()
                         else:
-                            mapped[internal_key] = str(val).strip()
+                            normalized_val = str(val).strip()
+
+                        if internal_key == 'import_notes' and str(normalized_val).strip():
+                            import_note_parts.append(f'{original_header}: {normalized_val}')
+                        else:
+                            mapped[internal_key] = normalized_val
 
                     # Phone is required
                     phone = clean_phone(mapped.get('phone', ''))
-                    if not phone:
-                        skipped_rows.append({'row': row_num, 'reason': 'Missing or invalid phone number'})
+                    if not phone or len(phone) < 10:
+                        skipped_rows.append({'row': row_num, 'reason': 'Missing or invalid phone number. Keep mobile numbers as text in CSV/Excel.'})
                         continue
 
                     # Name handling
@@ -356,21 +479,7 @@ class PatientImportView(APIView):
                             else:
                                 dob = dob_val
                         else:
-                            try:
-                                dob_str = str(dob_val).strip()
-                                # Try various date formats
-                                for fmt in (
-                                    '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%y',
-                                    '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
-                                    '%Y-%m-%dT%H:%M:%S.%fZ', '%d/%m/%y', '%m/%d/%y'
-                                ):
-                                    try:
-                                        dob = datetime.strptime(dob_str, fmt).date()
-                                        break
-                                    except ValueError:
-                                        continue
-                            except (ValueError, TypeError):
-                                pass
+                            dob = parse_import_date(dob_val)
                     if not dob and mapped.get('age'):
                         dob = age_to_dob(mapped['age'])
 
@@ -387,6 +496,10 @@ class PatientImportView(APIView):
 
                     # Referral source
                     referral_source = mapped.get('referral_source', '')
+                    weight_kg = parse_decimal(mapped.get('weight_kg'))
+                    import_amount = parse_decimal(mapped.get('import_amount'))
+                    import_visit_date = parse_import_date(mapped.get('import_visit_date'))
+                    import_notes = ' | '.join(import_note_parts)
 
                     # Build defaults dict
                     defaults = {
@@ -410,27 +523,55 @@ class PatientImportView(APIView):
                         defaults['medical_history'] = str(medical_history).strip()
                     if referral_source:
                         defaults['referral_source'] = str(referral_source).strip()[:255]
+                    if weight_kg is not None:
+                        defaults['weight_kg'] = weight_kg
+                    if import_amount is not None:
+                        defaults['import_amount'] = import_amount
+                    if import_visit_date:
+                        defaults['import_visit_date'] = import_visit_date
+                    if import_notes:
+                        defaults['import_notes'] = import_notes
 
-                    # Check for existing patient by phone in this branch
-                    existing = Patient.objects.filter(phone=phone, branch=branch).first()
+                    existing = existing_by_phone.get(phone)
 
                     if existing:
                         # Update: only overwrite non-blank fields
                         for key, val in defaults.items():
                             if val:  # don't overwrite with empty
                                 setattr(existing, key, val)
-                        existing.save()
-                        updated_count += 1
+                                update_fields.add(key)
+                        if existing.pk:
+                            patients_to_update[existing.pk] = existing
+                            updated_count += 1
                     else:
                         # Create new patient
+                        defaults['uhid'] = f"{uhid_prefix}{str(next_uhid_sequence).zfill(5)}"
+                        next_uhid_sequence += 1
                         defaults['phone'] = phone
                         defaults['branch'] = branch
                         defaults['registered_by'] = request.user
-                        Patient.objects.create(**defaults)
+                        patient = Patient(**defaults)
+                        patients_to_create.append(patient)
+                        existing_by_phone[phone] = patient
                         created_count += 1
 
                 except Exception as e:
                     errors.append({'row': row_num, 'error': str(e)})
+
+            if patients_to_create or patients_to_update:
+                with transaction.atomic():
+                    if patients_to_update and update_fields:
+                        update_fields.add('updated_at')
+                        now = timezone.now()
+                        for patient in patients_to_update.values():
+                            patient.updated_at = now
+                        Patient.objects.bulk_update(
+                            list(patients_to_update.values()),
+                            sorted(update_fields),
+                            batch_size=500,
+                        )
+                    if patients_to_create:
+                        Patient.objects.bulk_create(patients_to_create, batch_size=500)
 
             # ── 5. Build response ─────────────────────────────
             result = {

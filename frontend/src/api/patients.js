@@ -8,7 +8,8 @@ export const deletePatient = (id) => api.delete(`/patients/${id}/`);
 export const getMyProfile = () => api.get('/patients/me/');
 
 export const exportPatients = (params) => api.get('/patients/export/', { params, responseType: 'blob' });
-export const importPatients = (formData) => api.post('/patients/import/', formData);
+export const importPatients = (formData) => api.post('/patients/import/', formData, { timeout: 120000 });
+export const bulkDeletePatients = (patientIds) => api.post('/patients/bulk-delete/', { patient_ids: patientIds });
 
 export const getDepartments = () => api.get('/patients/departments/');
 export const getTreatments = (departmentId) => api.get('/patients/treatments/', { params: departmentId ? { department: departmentId } : {} });

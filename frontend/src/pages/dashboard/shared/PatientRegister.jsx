@@ -130,6 +130,10 @@ export default function PatientRegister() {
       setError('First name and phone are required.');
       return;
     }
+    if (user?.role === 'owner' && !form.branch) {
+      setError('Please select the patient branch.');
+      return;
+    }
     if (bookAppointment) {
       if (!aptBranch) {
         setError('Please select a branch for the appointment.');
@@ -162,11 +166,11 @@ export default function PatientRegister() {
         const aptPayload = {
           patient: patientData.id,
           branch: aptBranch,
-          doctor: user?.role === 'doctor' ? user.id : '',
           scheduled_date: aptDate,
           scheduled_time: aptTime,
           reason: aptReason || 'Consultation'
         };
+        if (user?.role === 'doctor') aptPayload.doctor = user.id;
         const { data: createdApt } = await createAppointment(aptPayload);
         appointmentData = {
           ...createdApt,
@@ -293,6 +297,25 @@ export default function PatientRegister() {
             <Field label="Gender" name="gender" form={form} onChange={handleChange} options={[
               { value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }
             ]} />
+            {user?.role === 'owner' && (
+              <div className="form-group">
+                <label className="form-label">Branch<span style={{ color: 'var(--danger)', marginLeft: 3 }}>*</span></label>
+                <select
+                  className="input"
+                  name="branch"
+                  value={form.branch}
+                  onChange={e => {
+                    handleChange(e);
+                    setAptBranch(e.target.value);
+                    setAptTime('');
+                  }}
+                  required
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            )}
             <Field label="Blood Group" name="blood_group" form={form} onChange={handleChange} options={[
               { value: 'unknown', label: 'Unknown' }, { value: 'A+', label: 'A+' }, { value: 'A-', label: 'A-' },
               { value: 'B+', label: 'B+' }, { value: 'B-', label: 'B-' }, { value: 'AB+', label: 'AB+' },
@@ -330,8 +353,12 @@ export default function PatientRegister() {
                     className="input"
                     required={bookAppointment}
                     value={aptBranch}
-                    onChange={e => { setAptBranch(e.target.value); setAptTime(''); }}
-                    disabled={!!user?.branch_id}
+                    onChange={e => {
+                      setAptBranch(e.target.value);
+                      setForm(p => ({ ...p, branch: e.target.value }));
+                      setAptTime('');
+                    }}
+                    disabled={!!user?.branch_id || user?.role === 'owner'}
                   >
                     <option value="">Select Branch...</option>
                     {branches.map(b => (

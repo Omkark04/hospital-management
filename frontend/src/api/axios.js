@@ -11,21 +11,32 @@ const api = axios.create({
 // ── Request interceptor — attach JWT access token
 api.interceptors.request.use(
   (config) => {
+    console.log(`[Axios Request] ${config.method?.toUpperCase()} ${config.url}`, {
+      headers: { ...config.headers },
+      isFormData: config.data instanceof FormData,
+    });
+
     const token = localStorage.getItem('access_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
     if (config.data instanceof FormData) {
+      console.log("[Axios Request] Data is FormData, attempting to delete Content-Type to let browser set boundary.");
       if (typeof config.headers.delete === 'function') {
         config.headers.delete('Content-Type');
+        config.headers.delete('content-type');
       } else {
         delete config.headers['Content-Type'];
         delete config.headers['content-type'];
       }
+      console.log("[Axios Request] Headers after Content-Type deletion:", { ...config.headers });
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("[Axios Request Error]", error);
+    return Promise.reject(error);
+  }
 );
 
 // ── Response interceptor — auto-refresh on 401

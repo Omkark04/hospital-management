@@ -29,7 +29,8 @@ class PatientListSerializer(serializers.ModelSerializer):
             'registered_by_name', 'is_active', 'created_at',
             'primary_department', 'primary_department_name',
             'interested_treatment', 'interested_treatment_name',
-            'prakriti', 'chief_complaint', 'referral_source'
+            'prakriti', 'chief_complaint', 'weight_kg', 'import_visit_date',
+            'import_amount', 'import_notes', 'referral_source'
         )
         read_only_fields = ('id', 'uhid', 'created_at')
 

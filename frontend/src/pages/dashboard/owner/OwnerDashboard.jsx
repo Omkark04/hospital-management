@@ -63,14 +63,17 @@ export default function OwnerDashboard() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [dropboxUsage, setDropboxUsage] = useState(null);
   const [checkingUsage, setCheckingUsage] = useState(false);
+  const [dropboxError, setDropboxError] = useState(null);
 
   const checkDropboxUsage = async () => {
     setCheckingUsage(true);
+    setDropboxError(null);
     try {
       const res = await api.get('/billing/bulk-manage/', { params: { action: 'usage' } });
       setDropboxUsage(res.data);
     } catch (err) {
-      alert('Could not fetch Dropbox storage usage. Ensure app permissions and tokens are fully refreshed.');
+      console.error('[Dropbox] Could not fetch storage usage:', err?.response?.data || err.message);
+      setDropboxError('Could not fetch Dropbox storage usage. Check app permissions and token settings.');
     } finally {
       setCheckingUsage(false);
     }
@@ -344,6 +347,10 @@ export default function OwnerDashboard() {
                 <span>Used: <strong>{(dropboxUsage.used_bytes / (1024 * 1024)).toFixed(2)} MB</strong></span>
                 <span>Quota: <strong>{(dropboxUsage.allocated_bytes / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> ({dropboxUsage.used_percent}%)</span>
               </div>
+            </div>
+          ) : dropboxError ? (
+            <div style={{ fontSize: '0.8rem', color: 'var(--danger, #dc2626)', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 6, padding: '6px 10px' }}>
+              ⚠ {dropboxError}
             </div>
           ) : (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>

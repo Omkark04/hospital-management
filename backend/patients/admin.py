@@ -15,9 +15,9 @@ class TreatmentAdmin(admin.ModelAdmin):
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('uhid', 'get_full_name', 'phone', 'gender', 'blood_group', 'branch', 'is_active', 'created_at')
+    list_display = ('uhid', 'get_full_name', 'phone', 'gender', 'blood_group', 'weight_kg', 'import_amount', 'branch', 'is_active', 'created_at')
     list_filter = ('gender', 'blood_group', 'branch', 'is_active')
-    search_fields = ('uhid', 'first_name', 'last_name', 'phone', 'email')
+    search_fields = ('uhid', 'first_name', 'last_name', 'phone', 'email', 'referral_source')
     readonly_fields = ('uhid', 'created_at', 'updated_at')
 
 

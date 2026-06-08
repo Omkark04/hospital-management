@@ -6,8 +6,6 @@ configured EMAIL_BACKEND, so SMTP, SendGrid SMTP, and console development
 backends all flow through the same code.
 """
 
-from email.utils import formataddr
-
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.defaultfilters import striptags
@@ -49,9 +47,7 @@ def send_email(
     )
 
     try:
-        from_name = getattr(settings, 'DEFAULT_FROM_NAME', '')
-        from_address = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
-        from_email = formataddr((from_name, from_address)) if from_name else from_address
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
         plain_message = striptags(html_content) or html_content
 
         email = EmailMultiAlternatives(

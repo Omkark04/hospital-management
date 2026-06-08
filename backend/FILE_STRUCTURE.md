@@ -183,8 +183,15 @@ hospital-management/
 | `DEBUG` | True in dev |
 | `ALLOWED_HOSTS` | Comma-separated hosts |
 | `CORS_ALLOWED_ORIGINS` | Frontend URL |
-| `SENDGRID_API_KEY` | SendGrid email API key |
 | `DEFAULT_FROM_EMAIL` | Sender email address |
+| `DEFAULT_FROM_NAME` | Sender display name |
+| `MAILERCLOUD_API_KEY` | Mailercloud SMTP API key |
+| `SENDGRID_API_KEY` | SendGrid SMTP API key |
+| `EMAIL_HOST` | Custom SMTP host |
+| `EMAIL_PORT` | Custom SMTP port |
+| `EMAIL_USE_TLS` | Enable TLS for custom SMTP |
+| `EMAIL_HOST_USER` | Custom SMTP username |
+| `EMAIL_HOST_PASSWORD` | Custom SMTP password |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name *(add later)* |
 | `CLOUDINARY_API_KEY` | Cloudinary API key *(add later)* |
 | `CLOUDINARY_API_SECRET` | Cloudinary secret *(add later)* |
