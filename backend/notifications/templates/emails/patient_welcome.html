@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Our Clinic</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f4f6f9;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      border: 1px solid #eef2f6;
+    }
+    .header {
+      background: linear-gradient(135deg, #0d9488, #115e59);
+      padding: 30px 40px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      padding: 40px;
+      line-height: 1.6;
+    }
+    .content h2 {
+      color: #0f172a;
+      margin-top: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .content p {
+      margin: 0 0 16px;
+      font-size: 15px;
+      color: #475569;
+    }
+    .card {
+      background: #f0fdfa;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #ccfbf1;
+      margin: 24px 0;
+    }
+    .card-row {
+      margin-bottom: 12px;
+      font-size: 14px;
+      border-bottom: 1px dashed #b2f5ea;
+      padding-bottom: 8px;
+    }
+    .card-row:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .label {
+      color: #115e59;
+      font-weight: 500;
+      display: inline-block;
+      width: 140px;
+    }
+    .value {
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .action-container {
+      text-align: center;
+      margin-top: 24px;
+    }
+    .btn {
+      display: inline-block;
+      background: #0d9488;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 15px;
+      text-align: center;
+    }
+    .footer {
+      background: #f8fafc;
+      padding: 24px 40px;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>{{ hospital_name }}</h1>
+    </div>
+    <div class="content">
+      <h2>Welcome, {{ first_name }}!</h2>
+      <p>Thank you for registering at our clinic. Your patient record has been successfully set up. Please find your Unique Health Identification (UHID) number below.</p>
+      
+      <div class="card">
+        <div class="card-row">
+          <span class="label">Patient UHID:</span>
+          <span class="value" style="font-family: monospace; font-size: 16px; color: #0f766e;">{{ uhid }}</span>
+        </div>
+        <div class="card-row">
+          <span class="label">Registered Branch:</span>
+          <span class="value">{{ branch_name }}</span>
+        </div>
+      </div>
+      
+      <p>You can use this UHID for all future appointments, prescriptions, and billing queries. You can also access our patient portal to view your clinical history, appointments, and lab results online.</p>
+      
+      <div class="action-container">
+        <a href="{{ portal_url }}" class="btn">Access Patient Portal</a>
+      </div>
+    </div>
+    <div class="footer">
+      &copy; {{ current_year }} {{ hospital_name }}. All rights reserved.<br>
+      Please do not reply directly to this email.
+    </div>
+  </div>
+</body>
+</html>

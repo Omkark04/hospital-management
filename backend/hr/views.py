@@ -5,8 +5,11 @@ from rest_framework.views import APIView
 
 from users.permissions import IsOwnerOrDoctor, IsDoctor, IsEmployee, IsOwner
 from users.models import UserRole
-from .models import Employee, Attendance, LeaveApplication
-from .serializers import EmployeeSerializer, AttendanceSerializer, LeaveApplicationSerializer, LeaveReviewSerializer
+from .models import Employee, Attendance, LeaveApplication, BranchOvertimeConfig, OvertimeRecord, PayrollSlip
+from .serializers import (
+    EmployeeSerializer, AttendanceSerializer, LeaveApplicationSerializer, LeaveReviewSerializer,
+    BranchOvertimeConfigSerializer, OvertimeRecordSerializer, PayrollSlipSerializer
+)
 
 
 def branch_qs(qs, user, prefix=''):
@@ -27,7 +30,27 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
 
     def get_queryset(self):
-        return branch_qs(Employee.objects.filter(is_active=True), self.request.user).order_by('id')
+        qs = branch_qs(Employee.objects.filter(is_active=True), self.request.user)
+        
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(user__phone__icontains=search) |
+                Q(designation__icontains=search)
+            )
+            
+        branch_id = self.request.query_params.get('branch')
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+            
+        designation = self.request.query_params.get('designation')
+        if designation:
+            qs = qs.filter(designation__iexact=designation)
+            
+        return qs.order_by('id')
 
     def perform_create(self, serializer):
         if self.request.user.role != UserRole.OWNER:
@@ -46,8 +69,18 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        if request.user.role == UserRole.OWNER and request.query_params.get('hard') == 'true':
+            user = instance.user
+            instance.delete()
+            if user:
+                user.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
         instance.is_active = False
         instance.save()
+        if instance.user:
+            instance.user.is_active = False
+            instance.user.save()
         return Response({'detail': 'Employee deactivated.'}, status=status.HTTP_200_OK)
 
 
@@ -130,7 +163,9 @@ class LeaveListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = self.request.user
         employee = Employee.objects.get(user=user)
-        serializer.save(employee=employee)
+        leave = serializer.save(employee=employee)
+        from notifications.email import send_leave_application_to_doctor
+        send_leave_application_to_doctor(leave)
 
     def create(self, request, *args, **kwargs):
         if request.user.role == UserRole.OWNER:
@@ -181,6 +216,8 @@ class LeaveReviewView(APIView):
         serializer = LeaveReviewSerializer(leave, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(reviewed_by=user)
+        from notifications.email import send_leave_decision_to_employee
+        send_leave_decision_to_employee(leave)
         return Response(LeaveApplicationSerializer(leave).data)
 
 
@@ -268,6 +305,13 @@ class PayrollSlipListView(generics.ListCreateAPIView):
         except Exception:
             return Response({'error': 'Invalid month format. Use YYYY-MM'}, status=400)
         
+        # Calculate working days excluding Sundays
+        working_days = 0
+        for day in range(1, num_days + 1):
+            dt = datetime.date(year, month_num, day)
+            if dt.weekday() != 6:  # 6 is Sunday
+                working_days += 1
+
         # Aggregate attendance
         attendances = Attendance.objects.filter(employee=employee, date__startswith=month)
         
@@ -280,13 +324,45 @@ class PayrollSlipListView(generics.ListCreateAPIView):
             elif att.status == AttendanceStatus.ABSENT: absent_days += 1
             elif att.status == AttendanceStatus.HOLIDAY: holiday_days += 1
                 
-        effective_present = present_days + (half_days * 0.5)
+        effective_present = float(present_days) + (float(half_days) * 0.5)
         base_salary = float(employee.salary or 0)
         
+        # Overtime calculation
+        overtime_records = OvertimeRecord.objects.filter(employee=employee, date__startswith=month, status='approved')
+        overtime_hours = 0.0
+        overtime_amount = 0.0
+        
+        config = BranchOvertimeConfig.objects.filter(branch=employee.branch).first()
+        rate_type = config.rate_type if config else '1.5x'
+        flat_rate = float(config.flat_rate) if config else 0.0
+        
+        # Base hourly rate
         if employee.salary_type == SalaryType.MONTHLY:
-            total_payable = (base_salary / num_days) * float(effective_present + paid_leave_days + holiday_days)
+            base_hourly = (base_salary / working_days) / 8.0 if working_days > 0 else 0.0
+        else:
+            base_hourly = base_salary / 8.0
+            
+        for record in overtime_records:
+            hrs = float(record.overtime_hours)
+            overtime_hours += hrs
+            if rate_type == 'flat':
+                rate = flat_rate
+            elif rate_type == '2x':
+                rate = base_hourly * 2.0
+            else:  # '1.5x'
+                rate = base_hourly * 1.5
+            overtime_amount += hrs * rate
+
+        # LOP Days calculation
+        # LOP days = max(0, working_days - (effective_present + paid_leave_days + holidays))
+        lop_days = max(0.0, float(working_days) - float(effective_present + paid_leave_days + holiday_days))
+        
+        if employee.salary_type == SalaryType.MONTHLY:
+            lop_deduction = (base_salary / working_days) * lop_days if working_days > 0 else 0.0
+            total_payable = base_salary - lop_deduction + overtime_amount
         else: # Daily
-            total_payable = base_salary * float(effective_present)
+            lop_days = 0.0 # No LOP concept for daily, since pay is per day worked
+            total_payable = (base_salary * effective_present) + overtime_amount
             
         slip, created = PayrollSlip.objects.update_or_create(
             employee=employee,
@@ -298,6 +374,9 @@ class PayrollSlipListView(generics.ListCreateAPIView):
                 'paid_leave_days': paid_leave_days,
                 'absent_days': absent_days,
                 'holiday_days': holiday_days,
+                'overtime_hours': overtime_hours,
+                'overtime_amount': overtime_amount,
+                'lop_days': lop_days,
                 'total_payable': total_payable,
             }
         )
@@ -312,3 +391,83 @@ class PayrollSlipDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         qs = PayrollSlip.objects.select_related('employee__branch')
         return branch_qs(qs, self.request.user, prefix='employee__')
+
+
+class BranchOvertimeConfigListCreateView(generics.ListCreateAPIView):
+    serializer_class = BranchOvertimeConfigSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == UserRole.OWNER:
+            return BranchOvertimeConfig.objects.all()
+        # Doctor sees their branch's config
+        return BranchOvertimeConfig.objects.filter(branch=user.branch)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role == UserRole.DOCTOR:
+            serializer.save(branch=user.branch)
+        else:
+            serializer.save()
+
+
+class BranchOvertimeConfigDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BranchOvertimeConfigSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == UserRole.OWNER:
+            return BranchOvertimeConfig.objects.all()
+        return BranchOvertimeConfig.objects.filter(branch=user.branch)
+
+
+class OvertimeRecordListView(generics.ListAPIView):
+    serializer_class = OvertimeRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == UserRole.OWNER:
+            qs = OvertimeRecord.objects.all()
+            branch_id = self.request.query_params.get('branch')
+            if branch_id:
+                qs = qs.filter(employee__branch_id=branch_id)
+            return qs
+        elif user.role == UserRole.DOCTOR:
+            return OvertimeRecord.objects.filter(employee__branch=user.branch)
+        else:
+            # Employee / receptionist sees their own
+            employee = Employee.objects.filter(user=user).first()
+            if not employee:
+                return OvertimeRecord.objects.none()
+            return OvertimeRecord.objects.filter(employee=employee)
+
+
+class OvertimeRecordReviewView(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctor]
+
+    def patch(self, request, pk):
+        try:
+            record = OvertimeRecord.objects.get(pk=pk)
+        except OvertimeRecord.DoesNotExist:
+            return Response({'detail': 'Overtime record not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if user.role == UserRole.DOCTOR and record.employee.branch != user.branch:
+            return Response({'detail': 'Not authorized for this branch.'}, status=status.HTTP_403_FORBIDDEN)
+
+        status_val = request.data.get('status')
+        if status_val not in ['approved', 'rejected']:
+            return Response({'detail': 'Invalid status. Must be approved or rejected.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        notes = request.data.get('notes', record.notes)
+        record.status = status_val
+        record.notes = notes
+        if status_val == 'approved':
+            record.approved_by = user
+        else:
+            record.approved_by = None
+        record.save()
+        return Response(OvertimeRecordSerializer(record).data)

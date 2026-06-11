@@ -284,7 +284,7 @@ class PatientRegisterSerializer(serializers.ModelSerializer):
         from branches.models import Branch
         default_branch = Branch.objects.first()
         if default_branch:
-            Patient.objects.create(
+            patient = Patient.objects.create(
                 branch=default_branch,
                 registered_by=user,
                 first_name=user.first_name,
@@ -292,6 +292,8 @@ class PatientRegisterSerializer(serializers.ModelSerializer):
                 phone=user.phone,
                 email=user.email or ""
             )
+            from notifications.email import send_patient_welcome
+            send_patient_welcome(patient)
         return user
 
 

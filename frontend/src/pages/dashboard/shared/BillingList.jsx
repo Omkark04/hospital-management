@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, createBill, updateBill, updatePayment, getBillPDF } from '../../../api/billing';
+import { useSearchParams } from 'react-router-dom';
+import { getBills, createBill, updateBill, updatePayment, getBillPDF, sendReminder } from '../../../api/billing';
 import api from '../../../api/axios';
 import { getPatients } from '../../../api/patients';
 import { getMedicines } from '../../../api/medicines';
@@ -9,9 +10,16 @@ import { FaFileInvoice, FaCreditCard, FaEdit, FaPlus, FaWhatsapp, FaCalendarAlt,
 const STATUS = { pending: 'danger', partial: 'warning', paid: 'success', cancelled: 'secondary' };
 
 export default function BillingList() {
+  const [searchParams] = useSearchParams();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('-created_at');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [udhariFilter, setUdhariFilter] = useState(searchParams.get('is_udhari') || '');
+  const [udhariDueDate, setUdhariDueDate] = useState(searchParams.get('udhari_due_date') || '');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showPayModal, setShowPayModal] = useState(null);
@@ -24,16 +32,31 @@ export default function BillingList() {
 
   const fetchBills = useCallback(() => {
     setLoading(true);
-    getBills({ status: statusFilter || undefined })
+    getBills({
+      status: statusFilter || undefined,
+      search: search || undefined,
+      ordering: sortKey || undefined,
+      created_after: startDate || undefined,
+      created_before: endDate || undefined,
+      is_udhari: udhariFilter || undefined,
+      udhari_due_date: udhariDueDate || undefined
+    })
       .then(({ data }) => setBills(data.results || data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [statusFilter]);
+  }, [statusFilter, search, sortKey, startDate, endDate, udhariFilter, udhariDueDate]);
 
   useEffect(() => { fetchBills(); }, [fetchBills]);
 
+  useEffect(() => {
+    const isUdhari = searchParams.get('is_udhari');
+    const dueDate = searchParams.get('udhari_due_date');
+    if (isUdhari !== null) setUdhariFilter(isUdhari);
+    if (dueDate !== null) setUdhariDueDate(dueDate);
+  }, [searchParams]);
+
   const openCreate = () => {
-    setForm({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, items: [{ description: '', medicine: null, product: null, quantity: 1, unit_price: '' }] });
+    setForm({ patient: '', branch: '', payment_method: 'cash', notes: '', discount: 0, udhari_due_date: '', items: [{ description: '', medicine: null, product: null, quantity: 1, unit_price: '' }] });
     Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
       .then(([p, m, pr]) => { 
         setPatients(p.data.results || p.data); 
@@ -50,6 +73,7 @@ export default function BillingList() {
       payment_method: bill.payment_method,
       notes: bill.notes,
       discount: bill.discount,
+      udhari_due_date: bill.udhari_due_date || '',
       items: bill.items.map(i => ({ ...i }))
     });
     Promise.all([getPatients(), getMedicines(), getPrescriptionProducts()])
@@ -83,6 +107,36 @@ export default function BillingList() {
     return { ...p, items }; 
   });
 
+  const handleQuickMarkPaid = async (bill) => {
+    const net = bill.total_amount - bill.discount;
+    if (!window.confirm(`Mark Bill #${bill.id} as fully paid? This will record the final total of ₹${net}.`)) return;
+    try {
+      await updatePayment(bill.id, {
+        paid_amount: net,
+        payment_method: 'cash',
+        notes: 'Quick marked paid'
+      });
+      fetchBills();
+    } catch {
+      alert('Failed to mark bill as paid.');
+    }
+  };
+
+  const handleSendReminder = async (bill) => {
+    try {
+      const res = await sendReminder(bill.id);
+      alert(res.data.detail || 'Reminder sent!');
+      fetchBills();
+      if (res.data.whatsapp_link) {
+        if (window.confirm('Would you also like to open WhatsApp to send a manual reminder message?')) {
+          window.open(res.data.whatsapp_link, '_blank');
+        }
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to send reminder.');
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.patient) return alert('Please select a patient.');
@@ -91,10 +145,15 @@ export default function BillingList() {
       if (p?.branch) form.branch = p.branch;
       else return alert('Patient branch not found. Please re-select the patient.');
     }
+    if (form.payment_method === 'udhari' && !form.udhari_due_date) {
+      return alert('Please select a Promise to Pay Date.');
+    }
 
     setSaving(true);
     const payload = {
       ...form,
+      is_udhari: form.payment_method === 'udhari',
+      udhari_due_date: form.payment_method === 'udhari' ? form.udhari_due_date : null,
       items: form.items.map(item => ({
         ...item,
         medicine: item.medicine || null,
@@ -186,19 +245,93 @@ export default function BillingList() {
           </h2>
           <p>Generate invoices and track payments.</p>
         </div>
-        <div className="page-actions">
-          <select className="input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 180 }}>
+        <div className="page-actions" style={{ flexWrap: 'wrap', gap: '10px' }}>
+          <input
+            className="input"
+            placeholder="Search patient..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 200 }}
+          />
+          <select
+            className="input"
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value)}
+            style={{ maxWidth: 160, cursor: 'pointer' }}
+          >
+            <option value="-created_at">Date (Newest First)</option>
+            <option value="created_at">Date (Oldest First)</option>
+            <option value="-total_amount">Amount (Highest First)</option>
+            <option value="total_amount">Amount (Lowest First)</option>
+          </select>
+          <select
+            className="input"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ maxWidth: 140, cursor: 'pointer' }}
+          >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="partial">Partial</option>
             <option value="paid">Paid</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <select
+            className="input"
+            value={udhariFilter}
+            onChange={e => setUdhariFilter(e.target.value)}
+            style={{ maxWidth: 140, cursor: 'pointer' }}
+          >
+            <option value="">All Types</option>
+            <option value="true">Udhari (Credit) Only</option>
+            <option value="false">Regular Only</option>
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>From:</span>
+            <input
+              type="date"
+              className="input"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{ maxWidth: 130 }}
+            />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>To:</span>
+            <input
+              type="date"
+              className="input"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              style={{ maxWidth: 130 }}
+            />
+          </div>
+          {(search || statusFilter || sortKey !== '-created_at' || startDate || endDate || udhariFilter || udhariDueDate) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+                setSortKey('-created_at');
+                setStartDate('');
+                setEndDate('');
+                setUdhariFilter('');
+                setUdhariDueDate('');
+              }}
+            >
+              Reset
+            </button>
+          )}
           <button className="btn btn-primary" onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaPlus /> Create Bill
           </button>
         </div>
       </div>
+
+      {udhariDueDate && (
+        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239, 68, 68, 0.1)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Filtering Udhari bills due on: {new Date(udhariDueDate).toLocaleDateString()}</span>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', height: 'auto', minHeight: 0, color: 'var(--primary)' }} onClick={() => setUdhariDueDate('')}>Show All Due Dates</button>
+        </div>
+      )}
 
       <div className="card">
         {loading ? (
@@ -234,7 +367,19 @@ export default function BillingList() {
                     <td style={{ color: 'var(--success)' }}>₹{b.paid_amount}</td>
                     <td style={{ color: b.balance_due > 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 600 }}>₹{b.balance_due}</td>
                     <td style={{ textTransform: 'capitalize', fontSize: '0.875rem' }}>{b.payment_method}</td>
-                    <td><span className={`badge badge-${STATUS[b.payment_status] || 'primary'}`}>{b.payment_status}</span></td>
+                    <td>
+                      <span className={`badge badge-${STATUS[b.payment_status] || 'primary'}`}>{b.payment_status}</span>
+                      {b.is_udhari && (
+                        <div style={{ marginTop: 4 }}>
+                          <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>Udhari</span>
+                          {b.udhari_due_date && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                              Due: {new Date(b.udhari_due_date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {b.payment_status !== 'paid' && b.payment_status !== 'cancelled' && (
@@ -243,9 +388,20 @@ export default function BillingList() {
                           </button>
                         )}
                         {b.payment_status !== 'paid' && b.payment_status !== 'cancelled' && (
-                          <button className="btn btn-success btn-sm" onClick={() => { setPayForm({ paid_amount: b.total_amount - b.discount, payment_method: 'cash' }); setShowPayModal(b); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <FaCreditCard /> Pay
-                          </button>
+                          b.is_udhari ? (
+                            <>
+                              <button className="btn btn-success btn-sm" onClick={() => handleQuickMarkPaid(b)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                Mark Paid
+                              </button>
+                              <button className="btn btn-outline btn-sm" onClick={() => handleSendReminder(b)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                📧 Remind
+                              </button>
+                            </>
+                          ) : (
+                            <button className="btn btn-success btn-sm" onClick={() => { setPayForm({ paid_amount: b.total_amount - b.discount, payment_method: 'cash' }); setShowPayModal(b); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <FaCreditCard /> Pay
+                            </button>
+                          )
                         )}
                         <button className="btn btn-outline btn-sm" onClick={() => handleDirectInvoiceDownload(b)} title="Directly Download PDF Receipt" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <FaFileInvoice /> Receipt
@@ -284,16 +440,31 @@ export default function BillingList() {
                       {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
                     </select>
                   </div>
-                  <div className="form-group">
+                   <div className="form-group">
                     <label className="form-label">Payment Method</label>
-                    <select className="input" value={form.payment_method} onChange={e => setForm(p => ({ ...p, payment_method: e.target.value }))}>
+                    <select className="input" value={form.payment_method} onChange={e => setForm(p => ({ ...p, payment_method: e.target.value, udhari_due_date: e.target.value === 'udhari' ? p.udhari_due_date : '' }))}>
                       <option value="cash">Cash</option>
                       <option value="card">Card</option>
                       <option value="upi">UPI</option>
                       <option value="insurance">Insurance</option>
+                      <option value="udhari">Udhari (Credit)</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
+
+                  {form.payment_method === 'udhari' && (
+                    <div className="form-group">
+                      <label className="form-label">Promise to Pay Date (Due Date) *</label>
+                      <input 
+                        type="date" 
+                        className="input" 
+                        required 
+                        value={form.udhari_due_date || ''} 
+                        onChange={e => setForm(p => ({ ...p, udhari_due_date: e.target.value }))} 
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Items */}

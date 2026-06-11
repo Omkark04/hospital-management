@@ -7,7 +7,7 @@ from .views import (
     DepartmentListView, TreatmentListView,
     PublicReviewListCreateView, AdminReviewListView, AdminReviewDetailView,
     PublicAvailableSlotsView, PublicBookAppointmentView,
-    PatientBulkDeleteView
+    PatientBulkDeleteView, PatientFullHistoryView
 )
 from .views_export import PatientExportView, PatientImportView
 
@@ -25,6 +25,7 @@ urlpatterns = [
     path('', PatientListCreateView.as_view(), name='patient-list-create'),
     path('<int:pk>/', PatientDetailView.as_view(), name='patient-detail'),
     path('me/', MyPatientProfileView.as_view(), name='my-profile'),
+    path('<int:patient_id>/full-history/', PatientFullHistoryView.as_view(), name='patient-full-history'),
 
     # Appointments
     path('appointments/', AppointmentListCreateView.as_view(), name='appointment-list-create'),

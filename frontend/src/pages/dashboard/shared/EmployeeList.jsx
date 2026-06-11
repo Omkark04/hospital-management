@@ -32,13 +32,52 @@ export default function EmployeeList() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Search & Filter States
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [selectedDesignation, setSelectedDesignation] = useState('');
+  const [designations, setDesignations] = useState([]);
+
+  // Fetch unique designations once initially
+  useEffect(() => {
+    getEmployees()
+      .then(({ data }) => {
+        const rows = data.results || data;
+        const unique = Array.from(new Set(rows.map(e => e.designation).filter(Boolean)));
+        setDesignations(unique);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Fetch branches for filter options if owner
+  useEffect(() => {
+    if (user?.role === 'owner') {
+      getBranches()
+        .then(({ data }) => setBranches(data.results || data))
+        .catch(console.error);
+    }
+  }, [user]);
+
+  // Debounce Search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchData = useCallback(() => {
     setLoading(true);
-    getEmployees()
+    getEmployees({
+      search: debouncedSearch.trim() || undefined,
+      branch: selectedBranch || undefined,
+      designation: selectedDesignation || undefined
+    })
       .then(({ data }) => setEmployees(data.results || data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [debouncedSearch, selectedBranch, selectedDesignation]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -102,13 +141,18 @@ export default function EmployeeList() {
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (emp) => {
-    if (!window.confirm(`Are you sure you want to remove ${emp.full_name}? This action will deactivate the employee.`)) return;
+  const handleDelete = async (emp, hard = false) => {
+    const actionText = hard ? 'permanently DELETE' : 'deactivate';
+    const warningText = hard 
+      ? `Are you sure you want to permanently DELETE ${emp.full_name}? This action is irreversible and will delete their user account.`
+      : `Are you sure you want to deactivate ${emp.full_name}? They will no longer be able to log in.`;
+      
+    if (!window.confirm(warningText)) return;
     try {
-      await deleteEmployee(emp.id);
+      await deleteEmployee(emp.id, hard);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete employee.');
+      alert(err.response?.data?.detail || `Failed to ${actionText} employee.`);
     }
   };
 
@@ -121,6 +165,45 @@ export default function EmployeeList() {
           <button className="btn btn-primary" onClick={() => openModal()}>+ Add Employee</button>
         </div>
       </div>
+
+      {/* Search & Filter Bar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          className="input"
+          placeholder="Search by name, phone or designation..."
+          style={{ flex: 1, minWidth: 200, maxWidth: 400 }}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        
+        <select
+          className="input"
+          style={{ width: 180 }}
+          value={selectedDesignation}
+          onChange={e => setSelectedDesignation(e.target.value)}
+        >
+          <option value="">All Designations</option>
+          {designations.map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        
+        {user?.role === 'owner' && (
+          <select
+            className="input"
+            style={{ width: 180 }}
+            value={selectedBranch}
+            onChange={e => setSelectedBranch(e.target.value)}
+          >
+            <option value="">All Branches</option>
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
       <div className="card">
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
@@ -147,7 +230,24 @@ export default function EmployeeList() {
                     <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{e.date_of_joining || '—'}</td>
                     <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => openModal(e)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaEdit style={{ fontSize: '0.75rem' }} /> Edit</button>
-                      <button className="btn btn-sm" onClick={() => handleDelete(e)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}><FaTrash style={{ fontSize: '0.75rem' }} /> Remove</button>
+                      
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        onClick={() => handleDelete(e, false)} 
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--warning, #f59e0b)' }}
+                      >
+                        Deactivate
+                      </button>
+                      
+                      {user?.role === 'owner' && (
+                        <button 
+                          className="btn btn-sm" 
+                          onClick={() => handleDelete(e, true)} 
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer' }}
+                        >
+                          <FaTrash style={{ fontSize: '0.75rem' }} /> Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

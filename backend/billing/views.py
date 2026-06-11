@@ -30,12 +30,62 @@ class BillListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         qs = Bill.objects.all()
         qs = branch_qs(qs, self.request.user)
+        
+        # Search by patient name, phone, or UHID
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(patient__first_name__icontains=search) |
+                Q(patient__last_name__icontains=search) |
+                Q(patient__phone__icontains=search) |
+                Q(patient__uhid__icontains=search)
+            ).distinct()
+
+        # Filter by status
         status_filter = self.request.query_params.get('status')
         if status_filter:
             qs = qs.filter(payment_status=status_filter)
+            
+        # Filter by Udhari (is_udhari=True)
+        udhari_filter = self.request.query_params.get('is_udhari')
+        if udhari_filter:
+            if udhari_filter.lower() == 'true':
+                qs = qs.filter(is_udhari=True)
+            elif udhari_filter.lower() == 'false':
+                qs = qs.filter(is_udhari=False)
+
+        # Filter by Udhari due date
+        udhari_due_date = self.request.query_params.get('udhari_due_date')
+        if udhari_due_date:
+            qs = qs.filter(udhari_due_date=udhari_due_date)
+
+        # Filter by date range (created_after/created_before on created_at)
+        created_after = self.request.query_params.get('created_after')
+        if created_after:
+            qs = qs.filter(created_at__date__gte=created_after)
+        created_before = self.request.query_params.get('created_before')
+        if created_before:
+            qs = qs.filter(created_at__date__lte=created_before)
+
         patient_id = self.request.query_params.get('patient')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
+            
+        # Filter by branch (Owner only)
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and self.request.user.role == UserRole.OWNER:
+            qs = qs.filter(branch_id=branch_id)
+
+        # Ordering (default is -created_at)
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            valid_orderings = ('created_at', '-created_at', 'total_amount', '-total_amount')
+            if ordering in valid_orderings:
+                qs = qs.order_by(ordering)
+        else:
+            qs = qs.order_by('-created_at')
+            
         return qs
 
     def perform_create(self, serializer):
@@ -213,3 +263,69 @@ class BulkInvoiceManagementView(APIView):
             bill.save()
             count += 1
         return Response({'detail': f'Successfully deleted {count} invoice PDFs from Dropbox.'})
+
+
+class BillSendReminderView(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def post(self, request, pk):
+        try:
+            bill = Bill.objects.select_related('patient', 'branch').get(pk=pk)
+        except Bill.DoesNotExist:
+            return Response({'detail': 'Bill not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        balance = bill.balance_due
+        if balance <= 0:
+            bill.is_udhari = False
+            bill.save()
+            return Response({'detail': 'This bill is already fully paid.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        patient = bill.patient
+        branch = bill.branch
+        due_str = bill.udhari_due_date.strftime('%d-%b-%Y') if bill.udhari_due_date else 'N/A'
+        
+        # WhatsApp link
+        raw_phone = patient.phone or ""
+        phone = "".join(c for c in raw_phone if c.isdigit())
+        clean_phone = f"91{phone}" if len(phone) == 10 else phone
+        wa_text = f"Hi {patient.get_full_name()}, this is a friendly reminder that an outstanding payment of Rs. {balance} is due on {due_str} for your bill #{bill.id} at {branch.name}. Thank you."
+        import urllib.parse
+        wa_link = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wa_text)}"
+
+        subject = f"Friendly Reminder: Outstanding Payment - {branch.name}"
+        message = (
+            f"Dear {patient.get_full_name()},\n\n"
+            f"This is a friendly reminder regarding your outstanding bill #{bill.id} at {branch.name}.\n\n"
+            f"Details of the payment:\n"
+            f" - Pending Amount: Rs. {balance:.2f}\n"
+            f" - Due Date: {due_str}\n\n"
+            f"You can quickly connect with us on WhatsApp or pay at the clinic:\n"
+            f"WhatsApp Quick Contact: {wa_link}\n\n"
+            f"If you have already settled this payment, please disregard this message.\n\n"
+            f"Best regards,\n"
+            f"{branch.name} Administration"
+        )
+
+        from django.conf import settings
+        from django.core.mail import send_mail
+        import datetime
+
+        # Send email
+        email_sent = False
+        if patient.email:
+            try:
+                from notifications.email import send_udhari_reminder_email
+                send_udhari_reminder_email(bill, wa_link)
+                email_sent = True
+            except Exception as e:
+                return Response({'detail': f'Email Error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Update reminder date
+        bill.udhari_last_reminder_date = datetime.date.today()
+        bill.save()
+
+        return Response({
+            'detail': 'Reminder sent successfully.',
+            'email_sent': email_sent,
+            'whatsapp_link': wa_link
+        }, status=status.HTTP_200_OK)

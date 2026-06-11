@@ -3,7 +3,9 @@ from .views import (
     EmployeeListCreateView, EmployeeDetailView, MyEmployeeProfileView,
     AttendanceListView, MyAttendanceView,
     LeaveListCreateView, LeaveDetailView, LeaveReviewView,
-    CloseDayView, PayrollSlipListView, PayrollSlipDetailView
+    CloseDayView, PayrollSlipListView, PayrollSlipDetailView,
+    BranchOvertimeConfigListCreateView, BranchOvertimeConfigDetailView,
+    OvertimeRecordListView, OvertimeRecordReviewView
 )
 from .views_attendance_qr import GenerateQRTokenView, ScanQRAttendanceView
 
@@ -33,4 +35,10 @@ urlpatterns = [
     path('attendance/close-day/', CloseDayView.as_view(), name='close-day'),
     path('payroll/', PayrollSlipListView.as_view(), name='payroll-list'),
     path('payroll/<int:pk>/', PayrollSlipDetailView.as_view(), name='payroll-detail'),
+
+    # Overtime Config & Approvals
+    path('overtime/configs/', BranchOvertimeConfigListCreateView.as_view(), name='overtime-config-list-create'),
+    path('overtime/configs/<int:pk>/', BranchOvertimeConfigDetailView.as_view(), name='overtime-config-detail'),
+    path('overtime/records/', OvertimeRecordListView.as_view(), name='overtime-record-list'),
+    path('overtime/records/<int:pk>/review/', OvertimeRecordReviewView.as_view(), name='overtime-record-review'),
 ]

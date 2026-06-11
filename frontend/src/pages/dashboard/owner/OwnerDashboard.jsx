@@ -52,7 +52,8 @@ function StatCard({ icon, label, value, color, link, badge }) {
 
 export default function OwnerDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ patients: null, employees: null, campaigns: null, branches: null });
+  const today = new Date().toISOString().split('T')[0];
+  const [stats, setStats] = useState({ patients: null, employees: null, campaigns: null, branches: null, udhariDueToday: null });
   const [finances, setFinances] = useState({ totalRevenue: 0, pendingDues: 0, dayTotals: [0, 0, 0, 0, 0, 0, 0], dayHeights: [0, 0, 0, 0, 0, 0, 0] });
   const [focus, setFocus] = useState({ leaves: 0, enquiries: 0, referrals: 0 });
   const [branchStats, setBranchStats] = useState([]);
@@ -118,13 +119,14 @@ export default function OwnerDashboard() {
 
   useEffect(() => {
     // 1. Stats
-    Promise.allSettled([getPatients(), getEmployees(), getCampaigns(), getBranches()])
-      .then(([p, e, c, b]) => {
+    Promise.allSettled([getPatients(), getEmployees(), getCampaigns(), getBranches(), getBills({ is_udhari: 'true', udhari_due_date: today })])
+      .then(([p, e, c, b, u]) => {
         setStats({
           patients: p.status === 'fulfilled' ? (p.value.data.count ?? p.value.data.length) : 0,
           employees: e.status === 'fulfilled' ? (e.value.data.count ?? e.value.data.length) : 0,
           campaigns: c.status === 'fulfilled' ? (c.value.data.count ?? c.value.data.length) : 0,
           branches: b.status === 'fulfilled' ? (b.value.data.count ?? b.value.data.length) : 0,
+          udhariDueToday: u.status === 'fulfilled' ? (u.value.data.count ?? u.value.data.length) : 0,
         });
       });
 
@@ -191,6 +193,7 @@ export default function OwnerDashboard() {
         <StatCard icon={<FaUsers />} label="Employees" value={stats.employees} color="purple" link="/dashboard/staff" />
         <StatCard icon={<FaBullhorn />} label="Campaigns" value={stats.campaigns} color="green" link="/dashboard/campaigns" />
         <StatCard icon={<FaBuilding />} label="Branches" value={stats.branches} color="orange" link="/dashboard/branches" />
+        <StatCard icon={<FaFileInvoiceDollar />} label="Udhari Due Today" value={stats.udhariDueToday} color="red" link={`/dashboard/billing?is_udhari=true&udhari_due_date=${today}`} />
       </div>
 
       <div style={{ marginBottom: 36 }}>

@@ -27,6 +27,9 @@ export default function StaffList() {
   const [selectedHospitalId, setSelectedHospitalId] = useState('');
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -36,10 +39,22 @@ export default function StaffList() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchData = useCallback(() => {
     setLoading(true);
     Promise.all([
-      getStaff({ role: roleFilter || undefined }),
+      getStaff({ 
+        role: roleFilter || undefined,
+        search: debouncedSearch.trim() || undefined,
+        branch: selectedBranch || undefined
+      }),
       getBranches(),
       getHospitals(),
     ])
@@ -50,7 +65,7 @@ export default function StaffList() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [roleFilter]);
+  }, [roleFilter, debouncedSearch, selectedBranch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -180,21 +195,46 @@ export default function StaffList() {
         <h2>Staff &amp; HR</h2>
         <p>Manage staff accounts, roles, and HR profiles across all branches.</p>
         <div className="page-actions">
-          <select
-            className="input"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            style={{ maxWidth: 180 }}
-          >
-            <option value="">All Roles</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
           <button className="btn btn-primary" onClick={() => openModal()}>
             + Add Staff
           </button>
         </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          className="input"
+          placeholder="Search by name, phone or designation..."
+          style={{ flex: 1, minWidth: 200, maxWidth: 400 }}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        
+        <select
+          className="input"
+          style={{ width: 180 }}
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option value="">All Roles</option>
+          {ROLES.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+        
+        <select
+          className="input"
+          style={{ width: 180 }}
+          value={selectedBranch}
+          onChange={e => setSelectedBranch(e.target.value)}
+        >
+          <option value="">All Branches</option>
+          {branches.map(b => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="card">

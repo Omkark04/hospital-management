@@ -13,7 +13,7 @@ import {
 function StatCard({ icon, label, value, color, link }) {
   return (
     <div className={`stat-card ${color}`}>
-      <div className="stat-icon" style={{ background: `var(--${color === 'cyan' ? 'primary' : color === 'purple' ? 'secondary' : color === 'green' ? 'success' : 'warning'}-bg)` }}>{icon}</div>
+      <div className="stat-icon" style={{ background: `var(--${color === 'cyan' ? 'primary' : color === 'purple' ? 'secondary' : color === 'green' ? 'success' : color === 'red' ? 'danger' : 'warning'}-bg)` }}>{icon}</div>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value ?? '—'}</div>
       {link && <Link to={link} style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: 8, display: 'block' }}>View all →</Link>}
@@ -39,12 +39,14 @@ export default function ReceptionistDashboard() {
       getBills({ status: 'pending' }),
       getLeaves({ status: 'pending' }),
       getSlotCapacity(),
-    ]).then(([p, a, b, l, cap]) => {
+      getBills({ is_udhari: 'true', udhari_due_date: today }),
+    ]).then(([p, a, b, l, cap, u]) => {
       setStats({
         patients: p.status === 'fulfilled' ? (p.value.data.count ?? p.value.data.length) : 0,
         appointments: a.status === 'fulfilled' ? (a.value.data.count ?? a.value.data.length) : 0,
         pendingBills: b.status === 'fulfilled' ? (b.value.data.count ?? b.value.data.length) : 0,
         pendingLeaves: l.status === 'fulfilled' ? (l.value.data.count ?? l.value.data.length) : 0,
+        udhariDueToday: u.status === 'fulfilled' ? (u.value.data.count ?? u.value.data.length) : 0,
       });
       if (l.status === 'fulfilled') {
         setPendingLeaves((l.value.data.results || l.value.data).slice(0, 4));
@@ -84,6 +86,7 @@ export default function ReceptionistDashboard() {
         <StatCard icon={<FaCalendarAlt />} label="Today's Appointments" value={stats.appointments} color="purple" link="/dashboard/appointments" />
         <StatCard icon={<FaFileInvoiceDollar />} label="Pending Bills" value={stats.pendingBills} color="orange" link="/dashboard/billing" />
         <StatCard icon={<FaEdit />} label="Pending Leaves" value={stats.pendingLeaves} color="red" link="/dashboard/leaves" />
+        <StatCard icon={<FaFileInvoiceDollar />} label="Udhari Due Today" value={stats.udhariDueToday} color="red" link={`/dashboard/billing?is_udhari=true&udhari_due_date=${today}`} />
       </div>
 
       <div className="dashboard-panels">

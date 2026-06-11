@@ -16,3 +16,15 @@ class CallLogSerializer(serializers.ModelSerializer):
         model = CallLog
         fields = '__all__'
         read_only_fields = ('caller', 'timestamp')
+
+
+from patients.models import Patient
+
+class TelecallingPatientSerializer(serializers.ModelSerializer):
+    last_appointment_date = serializers.DateField(read_only=True)
+    next_appointment_date = serializers.DateField(read_only=True)
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+
+    class Meta:
+        model = Patient
+        fields = ('id', 'first_name', 'last_name', 'full_name', 'uhid', 'phone', 'last_appointment_date', 'next_appointment_date')

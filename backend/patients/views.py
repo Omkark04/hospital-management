@@ -70,27 +70,53 @@ class PatientListCreateView(generics.ListCreateAPIView):
                 phone__icontains=search
             )
 
+        # Filter by last visit: 7d/30d/90d
+        last_visit = self.request.query_params.get('last_visit')
+        if last_visit in ['7d', '30d', '90d']:
+            import datetime
+            days = int(last_visit[:-1])
+            cutoff_date = datetime.date.today() - datetime.timedelta(days=days)
+            qs = qs.filter(appointments__scheduled_date__gte=cutoff_date, appointments__status='completed').distinct()
+
+        # Annotate appointment count to sort by appointments
+        from django.db.models import Count
+        qs = qs.annotate(appointment_count=Count('appointments'))
+
         ordering = self.request.query_params.get('ordering')
         if ordering:
-            valid_orderings = ('created_at', '-created_at', 'first_name', '-first_name', 'uhid', '-uhid')
+            valid_orderings = (
+                'created_at', '-created_at', 
+                'first_name', '-first_name', 
+                'uhid', '-uhid',
+                'dob', '-dob',
+                'age', '-age',
+                'appointment_count', '-appointment_count'
+            )
             if ordering in valid_orderings:
                 if ordering == 'first_name':
                     qs = qs.order_by('first_name', 'last_name')
                 elif ordering == '-first_name':
                     qs = qs.order_by('-first_name', '-last_name')
+                elif ordering == 'age':
+                    # Younger first = larger dob (newer birthdate)
+                    qs = qs.order_by('-dob')
+                elif ordering == '-age':
+                    # Older first = smaller dob
+                    qs = qs.order_by('dob')
                 else:
                     qs = qs.order_by(ordering)
-        return qs
+                return qs
+        # Always ensure a stable ordering to avoid pagination inconsistency warnings
+        return qs.order_by('-created_at')
 
     def perform_create(self, serializer):
         user = self.request.user
         from branches.models import Branch
 
+        patient = None
         if user.branch_id:
-            serializer.save(registered_by=user, branch_id=user.branch_id)
-            return
-
-        if user.role == UserRole.OWNER:
+            patient = serializer.save(registered_by=user, branch_id=user.branch_id)
+        elif user.role == UserRole.OWNER:
             branch = serializer.validated_data.get('branch')
             owner_branches = Branch.objects.filter(hospital__owner=user, is_active=True)
 
@@ -101,10 +127,13 @@ class PatientListCreateView(generics.ListCreateAPIView):
             if not branch:
                 raise ValidationError({'branch': ['Create a branch before registering patients.']})
 
-            serializer.save(registered_by=user, branch=branch)
-            return
+            patient = serializer.save(registered_by=user, branch=branch)
+        else:
+            raise ValidationError({'branch': ['Cannot determine branch for this user.']})
 
-        raise ValidationError({'branch': ['Cannot determine branch for this user.']})
+        if patient:
+            from notifications.email import send_patient_welcome
+            send_patient_welcome(patient)
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -157,17 +186,75 @@ class AppointmentListCreateView(generics.ListCreateAPIView):
             return Appointment.objects.filter(patient__phone=user.phone)
         qs = Appointment.objects.all()
         qs = branch_filtered_queryset(qs, user)
-        # Filter by date
+        
+        # Search by patient name, phone, or UHID
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(patient__first_name__icontains=search) |
+                Q(patient__last_name__icontains=search) |
+                Q(patient__phone__icontains=search) |
+                Q(patient__uhid__icontains=search)
+            ).distinct()
+
+        # Filter by date (exact match)
         date = self.request.query_params.get('date')
         if date:
             qs = qs.filter(scheduled_date=date)
+            
+        # Filter by date range (created_after/created_before on scheduled_date)
+        created_after = self.request.query_params.get('created_after')
+        if created_after:
+            qs = qs.filter(scheduled_date__gte=created_after)
+        created_before = self.request.query_params.get('created_before')
+        if created_before:
+            qs = qs.filter(scheduled_date__lte=created_before)
+
+        # Filter by status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        # Filter by branch (Owner only)
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and user.role == UserRole.OWNER:
+            qs = qs.filter(branch_id=branch_id)
+
         doctor_id = self.request.query_params.get('doctor')
         if doctor_id:
             qs = qs.filter(doctor_id=doctor_id)
+
+        # Ordering (default is -scheduled_date)
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            valid_orderings = ('scheduled_date', '-scheduled_date', 'status', '-status')
+            if ordering in valid_orderings:
+                qs = qs.order_by(ordering)
+        else:
+            qs = qs.order_by('-scheduled_date', '-scheduled_time')
+            
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(booked_by=self.request.user)
+        user = self.request.user
+        # Enforce: one appointment per patient per day
+        patient = serializer.validated_data.get('patient')
+        scheduled_date = serializer.validated_data.get('scheduled_date')
+        if patient and scheduled_date:
+            existing = Appointment.objects.filter(
+                patient=patient,
+                scheduled_date=scheduled_date,
+                status__in=[AppointmentStatus.SCHEDULED, AppointmentStatus.RESCHEDULED, AppointmentStatus.COMPLETED]
+            ).exists()
+            if existing:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    'scheduled_date': [f'{patient.get_full_name()} already has an appointment on {scheduled_date}. Please choose a different date.']
+                })
+        appointment = serializer.save(booked_by=user)
+        from notifications.email import send_appointment_booking_confirmation
+        send_appointment_booking_confirmation(appointment)
 
 
 class AppointmentDetailView(generics.RetrieveUpdateAPIView):
@@ -179,6 +266,13 @@ class AppointmentDetailView(generics.RetrieveUpdateAPIView):
         if user.role == UserRole.PATIENT:
             return Appointment.objects.filter(patient__phone=user.phone)
         return branch_filtered_queryset(Appointment.objects.all(), user)
+
+    def perform_update(self, serializer):
+        old_status = self.get_object().status
+        appointment = serializer.save()
+        if appointment.status == AppointmentStatus.NO_SHOW and old_status != AppointmentStatus.NO_SHOW:
+            from notifications.email import send_missed_appointment_email
+            send_missed_appointment_email(appointment)
 
 
 # ─────────────────── Visit Notes ─────────────────────────────
@@ -216,6 +310,58 @@ class LabReportDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = LabReportSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
     queryset = LabReport.objects.all()
+
+
+# ─────────────────── Patient Full History ────────────────────
+class PatientFullHistoryView(APIView):
+    """Returns aggregated medical history for a patient."""
+    permission_classes = [IsAuthenticated, IsOwnerOrDoctorOrReceptionist]
+
+    def get(self, request, patient_id, *args, **kwargs):
+        try:
+            patient = Patient.objects.get(id=patient_id, is_active=True)
+        except Patient.DoesNotExist:
+            return Response({'error': 'Patient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prescriptions
+        from medicines.models import Prescription, PrescriptionItem
+        from medicines.serializers import PrescriptionSerializer
+        prescriptions = Prescription.objects.filter(patient=patient).order_by('-created_at')[:20]
+        rx_data = PrescriptionSerializer(prescriptions, many=True).data
+
+        # Bills
+        from billing.models import Bill
+        from billing.serializers import BillListSerializer
+        try:
+            bills = Bill.objects.filter(patient=patient).order_by('-created_at')[:20]
+            bills_data = BillListSerializer(bills, many=True).data
+        except Exception:
+            bills_data = []
+
+        # Appointments
+        appointments = Appointment.objects.filter(patient=patient).order_by('-scheduled_date')[:30]
+        apt_data = AppointmentSerializer(appointments, many=True).data
+
+        # Telecalling logs
+        try:
+            from telecalling.models import CallLog
+            from telecalling.serializers import CallLogSerializer
+            call_logs = CallLog.objects.filter(patient=patient).order_by('-timestamp')[:20]
+            calls_data = CallLogSerializer(call_logs, many=True).data
+        except Exception:
+            calls_data = []
+
+        # Patient info
+        from .serializers import PatientDetailSerializer
+        patient_data = PatientDetailSerializer(patient).data
+
+        return Response({
+            'patient': patient_data,
+            'prescriptions': rx_data,
+            'bills': bills_data,
+            'appointments': apt_data,
+            'call_logs': calls_data,
+        })
 
 # ─────────────────── Reviews ──────────────────────────────────
 from .models import Review, ReviewStatus

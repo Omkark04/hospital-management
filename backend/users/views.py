@@ -107,11 +107,10 @@ class StaffListCreateView(generics.ListCreateAPIView):
         except Exception:
             pass
         user = self.request.user
-        qs = CustomUser.objects.exclude(role=UserRole.PATIENT).select_related('branch', 'employee_profile')
+        from django.db.models import Q
         if user.role == UserRole.OWNER:
             # Owner sees all staff in their branches OR unassigned staff (as they might be the ones to assign them)
             from branches.models import Branch
-            from django.db.models import Q
             branch_ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
             qs = qs.filter(Q(branch_id__in=branch_ids) | Q(branch__isnull=True))
         else:
@@ -121,6 +120,20 @@ class StaffListCreateView(generics.ListCreateAPIView):
         role = self.request.query_params.get('role')
         if role:
             qs = qs.filter(role=role)
+        # Optional filter by branch
+        branch_id = self.request.query_params.get('branch')
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+        # Optional search
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(username__icontains=search) |
+                Q(employee_profile__designation__icontains=search)
+            ).distinct()
         return qs
 
     def get_serializer_context(self):

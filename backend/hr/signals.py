@@ -8,10 +8,16 @@ from .models import Employee, LeaveApplication, LeaveStatus, Attendance, Attenda
 
 @receiver(post_save, sender=Employee)
 def sync_user_branch(sender, instance, created, **kwargs):
-    """Sync the user's branch when the employee's branch changes."""
+    """Sync the user's branch and active status when the employee profile changes."""
     user = instance.user
+    modified = False
     if user.branch != instance.branch:
         user.branch = instance.branch
+        modified = True
+    if user.is_active != instance.is_active:
+        user.is_active = instance.is_active
+        modified = True
+    if modified:
         user.save()
 
 @receiver(post_save, sender=LeaveApplication)

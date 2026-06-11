@@ -14,6 +14,10 @@ export default function PrescriptionList() {
   const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('-created_at');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [patients, setPatients] = useState([]);
   const [availableItems, setAvailableItems] = useState([]);
@@ -41,11 +45,16 @@ export default function PrescriptionList() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    getPrescriptions()
+    getPrescriptions({
+      search: search || undefined,
+      ordering: sortKey || undefined,
+      created_after: startDate || undefined,
+      created_before: endDate || undefined
+    })
       .then(({ data }) => setPrescriptions(data.results || data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [search, sortKey, startDate, endDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -114,8 +123,57 @@ export default function PrescriptionList() {
       <div className="page-header">
         <h2>Prescriptions</h2>
         <p>Patient prescriptions and medicines.</p>
-        <div className="page-actions">
-          {user?.role === 'doctor' && <button className="btn btn-primary" onClick={openNew}>+ New Prescription</button>}
+        <div className="page-actions" style={{ flexWrap: 'wrap', gap: '10px' }}>
+          <input
+            className="input"
+            placeholder="Search patient..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 200 }}
+          />
+          <select
+            className="input"
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value)}
+            style={{ maxWidth: 160, cursor: 'pointer' }}
+          >
+            <option value="-created_at">Date (Newest First)</option>
+            <option value="created_at">Date (Oldest First)</option>
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>From:</span>
+            <input
+              type="date"
+              className="input"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{ maxWidth: 130 }}
+            />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>To:</span>
+            <input
+              type="date"
+              className="input"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              style={{ maxWidth: 130 }}
+            />
+          </div>
+          {(search || sortKey !== '-created_at' || startDate || endDate) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setSearch('');
+                setSortKey('-created_at');
+                setStartDate('');
+                setEndDate('');
+              }}
+            >
+              Reset
+            </button>
+          )}
+          {user?.role === 'doctor' && (
+            <button className="btn btn-primary" onClick={openNew}>+ New Prescription</button>
+          )}
         </div>
       </div>
 

@@ -59,6 +59,7 @@ const PatientReferral = lazy(() => import('./pages/dashboard/patient/PatientRefe
 
 const MyAttendance    = lazy(() => import('./pages/dashboard/employee/MyAttendance'));
 const MyLeaves        = lazy(() => import('./pages/dashboard/employee/MyLeaves'));
+const TherapyList     = lazy(() => import('./pages/dashboard/shared/TherapyList'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
 
 function PageLoader() {
@@ -118,6 +119,7 @@ export default function App() {
               <Route path="inventory" element={<Inventory />} />
               <Route path="telecalling" element={<TelecallingDashboard />} />
               <Route path="products" element={<ProductManage />} />
+              <Route path="therapies" element={<TherapyList />} />
 
               {/* Owner */}
               <Route path="hospitals" element={<HospitalList />} />

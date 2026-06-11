@@ -13,6 +13,7 @@ class PaymentMethod(models.TextChoices):
     CARD = 'card', 'Card'
     UPI = 'upi', 'UPI'
     INSURANCE = 'insurance', 'Insurance'
+    UDHARI = 'udhari', 'Udhari (Credit)'
     OTHER = 'other', 'Other'
 
 
@@ -32,6 +33,10 @@ class Bill(models.Model):
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_status = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    is_udhari = models.BooleanField(default=False)
+    udhari_due_date = models.DateField(null=True, blank=True)
+    udhari_reminder_sent = models.BooleanField(default=False)
+    udhari_last_reminder_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
     pdf_url = models.URLField(blank=True, null=True, help_text='Link to generated PDF on Dropbox')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,6 +72,7 @@ class Bill(models.Model):
             self.payment_status = PaymentStatus.PARTIAL
         else:
             self.payment_status = PaymentStatus.PAID
+            self.is_udhari = False
         super().save(*args, **kwargs)
 
 

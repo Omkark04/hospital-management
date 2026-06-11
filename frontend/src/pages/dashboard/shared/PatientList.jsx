@@ -16,6 +16,7 @@ export default function PatientList() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortKey, setSortKey] = useState('-created_at');
+  const [lastVisitFilter, setLastVisitFilter] = useState('');
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportDates, setExportDates] = useState({ start: '', end: '' });
@@ -31,7 +32,7 @@ export default function PatientList() {
 
   const fetchPatients = useCallback(() => {
     setLoading(true);
-    getPatients({ search: search || undefined, page, ordering: sortKey })
+    getPatients({ search: search || undefined, page, ordering: sortKey, last_visit: lastVisitFilter || undefined })
       .then(({ data }) => {
         setPatients(data.results || data);
         setTotalCount(data.count || (data.results || data).length);
@@ -39,7 +40,7 @@ export default function PatientList() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search, page, sortKey]);
+  }, [search, page, sortKey, lastVisitFilter]);
 
   useEffect(() => { fetchPatients(); }, [fetchPatients]);
 
@@ -202,6 +203,21 @@ export default function PatientList() {
             <option value="-first_name">Name (Z-A)</option>
             <option value="uhid">UHID (Ascending)</option>
             <option value="-uhid">UHID (Descending)</option>
+            <option value="-age">Age (Oldest First)</option>
+            <option value="age">Age (Youngest First)</option>
+            <option value="-appointment_count">Appointments (Most First)</option>
+            <option value="appointment_count">Appointments (Least First)</option>
+          </select>
+          <select
+            className="input"
+            value={lastVisitFilter}
+            onChange={e => { setLastVisitFilter(e.target.value); setPage(1); }}
+            style={{ maxWidth: 150, cursor: 'pointer' }}
+          >
+            <option value="">All Last Visits</option>
+            <option value="7d">Last Visit: 7 Days</option>
+            <option value="30d">Last Visit: 30 Days</option>
+            <option value="90d">Last Visit: 90 Days</option>
           </select>
           <button onClick={() => { setImportFile(null); setImportResult(null); setImportError(null); setShowImportModal(true); }} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaUpload /> Import

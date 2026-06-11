@@ -46,4 +46,7 @@ urlpatterns = [
 
     # Telecalling
     path('api/telecalling/', include('telecalling.urls', namespace='telecalling')),
+
+    # Therapies
+    path('api/therapies/', include('therapies.urls', namespace='therapies')),
 ]

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'referrals',
     'notifications',
     'telecalling',
+    'therapies',
 ]
 
 # ─────────────────────────── Middleware ───────────────────────
@@ -189,45 +190,17 @@ DEFAULT_FROM_EMAIL = (
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-EMAIL_HOST_ENV = os.getenv('EMAIL_HOST', '')
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
-MAILERCLOUD_API_KEY = os.getenv('MAILERCLOUD_API_KEY', '')
-
-if EMAIL_HOST_ENV:
-    # Universal SMTP Provider (e.g., Mailercloud, Gmail, custom)
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = EMAIL_HOST_ENV
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+if EMAIL_HOST:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
     EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
     EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', DEFAULT_FROM_ADDRESS)
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-elif MAILERCLOUD_API_KEY:
-    # Mailercloud SMTP
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.mailercloud.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = DEFAULT_FROM_ADDRESS
-    EMAIL_HOST_PASSWORD = MAILERCLOUD_API_KEY
-elif SENDGRID_API_KEY and SENDGRID_API_KEY.startswith('SG.'):
-    # SendGrid SMTP — key must start with 'SG.'
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.sendgrid.net'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'apikey'
-    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
 else:
-    # No valid SMTP configuration — log to console in development
-    import logging
-    _email_logger = logging.getLogger(__name__)
-    if SENDGRID_API_KEY and not SENDGRID_API_KEY.startswith('SG.'):
-        _email_logger.warning(
-            "SENDGRID_API_KEY is set but does not start with 'SG.' — "
-            "this is not a valid SendGrid API key. Falling back to console backend. "
-            "Use MAILERCLOUD_API_KEY for Mailercloud, or set EMAIL_HOST for generic SMTP."
-        )
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    # Default to console backend if no SMTP host is configured
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
 # ─────────────────────────── Cloudinary (stub) ────────────────
 CLOUDINARY_STORAGE = {

@@ -7,3 +7,4 @@ export const updateBill = (id, data) => api.put(`/billing/${id}/`, data);
 export const updatePayment = (id, data) => api.patch(`/billing/${id}/pay/`, data);
 export const getMyBills = () => api.get('/billing/my-bills/');
 export const getBillPDF = (id, refresh = false) => api.get(`/billing/${id}/pdf/`, { params: { refresh } });
+export const sendReminder = (id) => api.post(`/billing/${id}/send-reminder/`);

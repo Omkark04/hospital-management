@@ -4,6 +4,7 @@ import { getPatients } from '../../../api/patients';
 import { useAuth } from '../../../context/AuthContext';
 import api from '../../../api/axios';
 import { FaCalendarAlt, FaPlus, FaCheck, FaEdit, FaClock, FaTimes } from 'react-icons/fa';
+import PatientSearchInput from '../../../components/common/PatientSearchInput';
 
 const STATUS_COLORS = { scheduled: 'info', completed: 'success', cancelled: 'danger', rescheduled: 'warning', no_show: 'danger' };
 
@@ -14,7 +15,14 @@ export default function AppointmentList() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('-scheduled_date');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null); // { id, name, phone }
   const [patients, setPatients] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [myPatientId, setMyPatientId] = useState(null);
@@ -72,20 +80,21 @@ export default function AppointmentList() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    getAppointments({ date: filterDate || undefined })
+    getAppointments({
+      date: filterDate || undefined,
+      search: search || undefined,
+      ordering: sortKey || undefined,
+      created_after: startDate || undefined,
+      created_before: endDate || undefined,
+      status: statusFilter || undefined,
+      branch: branchFilter || undefined
+    })
       .then(({ data }) => setAppointments(data.results || data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [filterDate]);
+  }, [filterDate, search, sortKey, startDate, endDate, statusFilter, branchFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  const ensurePatientsLoaded = () => {
-    // ONLY call for staff — patients never need the full patient list
-    if (user?.role && user.role !== 'patient' && !patients.length) {
-      getPatients().then(({ data }) => setPatients(data.results || data)).catch(console.error);
-    }
-  };
 
   const openNew = () => {
     setEditItem(null);
@@ -96,14 +105,15 @@ export default function AppointmentList() {
       reason: '',
       branch: user?.branch_id || ''
     });
-    if (!isPatient) ensurePatientsLoaded();  // only staff load patient list
+    setSelectedPatient(null);
     setShowModal(true);
   };
 
   const openEdit = (a) => {
     setEditItem(a);
     setForm({ patient: a.patient, scheduled_date: a.scheduled_date, scheduled_time: a.scheduled_time, reason: a.reason, branch: a.branch });
-    if (!isPatient) ensurePatientsLoaded();
+    // Populate a display label for the selected patient when editing
+    setSelectedPatient({ id: a.patient, label: a.patient_name || `Patient #${a.patient}` });
     setShowModal(true);
   };
 
@@ -137,9 +147,95 @@ export default function AppointmentList() {
       <div className="page-header">
         <h2>Appointments</h2>
         <p>{isPatient ? 'Book and manage your appointments.' : 'Manage patient appointments.'}</p>
-        <div className="page-actions">
-          <input type="date" className="input" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 200 }} />
-          {filterDate && <button className="btn btn-ghost btn-sm" onClick={() => setFilterDate('')}>Clear</button>}
+        <div className="page-actions" style={{ flexWrap: 'wrap', gap: '10px' }}>
+          {!isPatient && (
+            <>
+              <input
+                className="input"
+                placeholder="Search patient..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ maxWidth: 200 }}
+              />
+              <select
+                className="input"
+                value={sortKey}
+                onChange={e => setSortKey(e.target.value)}
+                style={{ maxWidth: 160, cursor: 'pointer' }}
+              >
+                <option value="-scheduled_date">Date (Newest First)</option>
+                <option value="scheduled_date">Date (Oldest First)</option>
+                <option value="status">Status (A-Z)</option>
+                <option value="-status">Status (Z-A)</option>
+              </select>
+              <select
+                className="input"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ maxWidth: 150, cursor: 'pointer' }}
+              >
+                <option value="">All Statuses</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="rescheduled">Rescheduled</option>
+                <option value="no_show">No Show</option>
+              </select>
+              {user?.role === 'owner' && (
+                <select
+                  className="input"
+                  value={branchFilter}
+                  onChange={e => setBranchFilter(e.target.value)}
+                  style={{ maxWidth: 150, cursor: 'pointer' }}
+                >
+                  <option value="">All Branches</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>From:</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  style={{ maxWidth: 130 }}
+                />
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>To:</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  style={{ maxWidth: 130 }}
+                />
+              </div>
+            </>
+          )}
+          <input
+            type="date"
+            className="input"
+            value={filterDate}
+            onChange={e => setFilterDate(e.target.value)}
+            style={{ maxWidth: 130 }}
+          />
+          {(filterDate || search || startDate || endDate || statusFilter || branchFilter) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setFilterDate('');
+                setSearch('');
+                setStartDate('');
+                setEndDate('');
+                setStatusFilter('');
+                setBranchFilter('');
+              }}
+            >
+              Reset
+            </button>
+          )}
           <button className="btn btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaPlus /> Book Appointment
           </button>
@@ -236,23 +332,22 @@ export default function AppointmentList() {
                 {!isPatient && (
                   <div className="form-group">
                     <label className="form-label">Patient *</label>
-                    <select
-                      className="input"
-                      required
+                    <PatientSearchInput
                       value={form.patient}
-                      onChange={e => {
-                        const pId = e.target.value;
-                        const selectedPatient = patients.find(p => p.id === parseInt(pId));
+                      onSelect={(p) => {
+                        setSelectedPatient(p);
                         setForm(prev => ({
                           ...prev,
-                          patient: pId,
-                          branch: user?.branch_id || selectedPatient?.branch || prev.branch
+                          patient: p.id,
+                          branch: user?.branch_id || p.branch || prev.branch
                         }));
                       }}
-                    >
-                      <option value="">Select patient...</option>
-                      {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
-                    </select>
+                      onClear={() => {
+                        setSelectedPatient(null);
+                        setForm(prev => ({ ...prev, patient: '' }));
+                      }}
+                      required
+                    />
                   </div>
                 )}
 

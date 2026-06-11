@@ -94,11 +94,54 @@ class PrescriptionListCreateView(generics.ListCreateAPIView):
             if patient:
                 return Prescription.objects.filter(patient=patient)
             return Prescription.objects.none()
-        # Doctors see prescriptions they wrote
+
+        # Doctor / Receptionist / Owner sees prescriptions scoped by branch
+        qs = Prescription.objects.all()
+        if user.role == UserRole.OWNER:
+            from branches.models import Branch
+            ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
+            qs = qs.filter(patient__branch_id__in=ids)
+        else:
+            qs = qs.filter(patient__branch=user.branch)
+
+        # Search by patient name, phone, or UHID
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(patient__first_name__icontains=search) |
+                Q(patient__last_name__icontains=search) |
+                Q(patient__phone__icontains=search) |
+                Q(patient__uhid__icontains=search)
+            ).distinct()
+
+        # Filter by patient_id
         patient_id = self.request.query_params.get('patient')
-        qs = Prescription.objects.filter(doctor=user)
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
+
+        # Filter by date range (created_after/created_before on created_at)
+        created_after = self.request.query_params.get('created_after')
+        if created_after:
+            qs = qs.filter(created_at__date__gte=created_after)
+        created_before = self.request.query_params.get('created_before')
+        if created_before:
+            qs = qs.filter(created_at__date__lte=created_before)
+
+        # Filter by branch from query params (Owner only)
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and user.role == UserRole.OWNER:
+            qs = qs.filter(patient__branch_id=branch_id)
+
+        # Ordering (default is -created_at)
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            valid_orderings = ('created_at', '-created_at')
+            if ordering in valid_orderings:
+                qs = qs.order_by(ordering)
+        else:
+            qs = qs.order_by('-created_at')
+
         return qs
 
     def perform_create(self, serializer):
@@ -121,7 +164,13 @@ class PrescriptionDetailView(generics.RetrieveUpdateAPIView):
             if patient:
                 return Prescription.objects.filter(patient=patient)
             return Prescription.objects.none()
-        return Prescription.objects.filter(doctor=user)
+            
+        # Scoped to branch for doctor/receptionist, and all for owner
+        if user.role == UserRole.OWNER:
+            from branches.models import Branch
+            ids = Branch.objects.filter(hospital__owner=user).values_list('id', flat=True)
+            return Prescription.objects.filter(patient__branch_id__in=ids)
+        return Prescription.objects.filter(patient__branch=user.branch)
 
 # ─────────────────── Inventory & Ledger ───────────────────
 class LowStockMedicineView(generics.ListAPIView):

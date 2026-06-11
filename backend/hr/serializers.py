@@ -143,7 +143,7 @@ class LeaveReviewSerializer(serializers.ModelSerializer):
         fields = ('status', 'review_notes')
 
 
-from .models import PayrollSlip
+from .models import PayrollSlip, BranchOvertimeConfig, OvertimeRecord
 
 class PayrollSlipSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source='employee.user.get_full_name', read_only=True)
@@ -153,4 +153,25 @@ class PayrollSlipSerializer(serializers.ModelSerializer):
     class Meta:
         model = PayrollSlip
         fields = '__all__'
-        read_only_fields = ('id', 'created_at', 'updated_at', 'total_payable')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class BranchOvertimeConfigSerializer(serializers.ModelSerializer):
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
+
+    class Meta:
+        model = BranchOvertimeConfig
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class OvertimeRecordSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.user.get_full_name', read_only=True)
+    designation = serializers.CharField(source='employee.designation', read_only=True)
+    branch_name = serializers.CharField(source='employee.branch.name', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = OvertimeRecord
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'approved_by')

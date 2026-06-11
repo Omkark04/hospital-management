@@ -6,7 +6,7 @@ import {
   FaCommentAlt, FaLink, FaStar, FaBell, FaUserCircle, FaUserInjured, 
   FaCalendarAlt, FaPrescriptionBottleAlt, FaPlusCircle, FaFileInvoiceDollar, 
   FaCheckCircle, FaEdit, FaClipboardList, FaChartLine, FaPhoneAlt, FaQrcode, FaCamera,
-  FaMoneyBillWave, FaUserPlus, FaSignOutAlt
+  FaMoneyBillWave, FaUserPlus, FaSignOutAlt, FaLeaf
 } from 'react-icons/fa';
 
 const roleMenus = {
@@ -20,6 +20,8 @@ const roleMenus = {
     { to: '/dashboard/campaigns', label: 'Campaigns', icon: <FaBullhorn /> },
     { to: '/dashboard/products', label: 'Store Products', icon: <FaBox /> },
     { to: '/dashboard/inventory', label: 'Inventory', icon: <FaClipboardList /> },
+    { section: 'Clinical' },
+    { to: '/dashboard/therapies', label: 'Therapies', icon: <FaLeaf /> },
     { section: 'HR' },
     { to: '/dashboard/attendance', label: 'Attendance Log', icon: <FaCheckCircle /> },
     { to: '/dashboard/leaves', label: 'Leave Requests', icon: <FaEdit /> },
@@ -40,6 +42,7 @@ const roleMenus = {
     { to: '/dashboard/patients', label: 'Patients', icon: <FaUserInjured /> },
     { to: '/dashboard/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
     { to: '/dashboard/prescriptions', label: 'Prescriptions', icon: <FaPrescriptionBottleAlt /> },
+    { to: '/dashboard/therapies', label: 'Therapies', icon: <FaLeaf /> },
     { to: '/dashboard/telecalling', label: 'Telecalling', icon: <FaPhoneAlt /> },
     { to: '/dashboard/billing', label: 'Billing', icon: <FaFileInvoiceDollar /> },
     { to: '/dashboard/products', label: 'Prescription Medicines', icon: <FaBox /> },

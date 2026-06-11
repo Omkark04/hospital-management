@@ -6,13 +6,14 @@ import { getAppointments } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
 import { getSlotCapacity, updateSlotCapacity } from '../../../api/branches';
+import { getBills } from '../../../api/billing';
 import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar, FaUserPlus } from 'react-icons/fa';
 import ConsultationWorkspace from './ConsultationWorkspace';
 
 function StatCard({ icon, label, value, color, link }) {
   return (
     <div className={`stat-card ${color}`}>
-      <div className="stat-icon" style={{ background: `var(--${color === 'cyan' ? 'primary' : color === 'purple' ? 'secondary' : color === 'green' ? 'success' : 'warning'}-bg)` }}>{icon}</div>
+      <div className="stat-icon" style={{ background: `var(--${color === 'cyan' ? 'primary' : color === 'purple' ? 'secondary' : color === 'green' ? 'success' : color === 'red' ? 'danger' : 'warning'}-bg)` }}>{icon}</div>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value ?? '—'}</div>
       {link && <Link to={link} style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: 8, display: 'block' }}>View all →</Link>}
@@ -22,7 +23,7 @@ function StatCard({ icon, label, value, color, link }) {
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ patients: null, appointments: null, prescriptions: null, campaigns: null });
+  const [stats, setStats] = useState({ patients: null, appointments: null, prescriptions: null, campaigns: null, udhariDueToday: null });
   const [todayAppts, setTodayAppts] = useState([]);
   const [activeConsultation, setActiveConsultation] = useState(null);
 
@@ -39,12 +40,14 @@ export default function DoctorDashboard() {
       getPrescriptions(),
       getMyCampaigns(),
       getSlotCapacity(),
-    ]).then(([p, a, rx, c, cap]) => {
+      getBills({ is_udhari: 'true', udhari_due_date: today })
+    ]).then(([p, a, rx, c, cap, u]) => {
       setStats({
         patients: p.status === 'fulfilled' ? (p.value.data.count ?? p.value.data.length) : 0,
         appointments: a.status === 'fulfilled' ? (a.value.data.count ?? a.value.data.length) : 0,
         prescriptions: rx.status === 'fulfilled' ? (rx.value.data.count ?? rx.value.data.length) : 0,
         campaigns: c.status === 'fulfilled' ? (c.value.data.count ?? c.value.data.length) : 0,
+        udhariDueToday: u.status === 'fulfilled' ? (u.value.data.count ?? u.value.data.length) : 0,
       });
       if (a.status === 'fulfilled') {
         const list = a.value.data.results || a.value.data;
@@ -83,6 +86,7 @@ export default function DoctorDashboard() {
         <StatCard icon={<FaCalendarCheck />} label="Today's Appointments" value={stats.appointments} color="purple" link="/dashboard/appointments" />
         <StatCard icon={<FaPrescriptionBottleAlt />} label="Prescriptions Issued" value={stats.prescriptions} color="green" link="/dashboard/prescriptions" />
         <StatCard icon={<FaBullhorn />} label="Active Campaigns" value={stats.campaigns} color="orange" link="/dashboard/my-campaigns" />
+        <StatCard icon={<FaFileInvoiceDollar />} label="Udhari Due Today" value={stats.udhariDueToday} color="red" link={`/dashboard/billing?is_udhari=true&udhari_due_date=${today}`} />
       </div>
 
       <div className="dashboard-panels">
