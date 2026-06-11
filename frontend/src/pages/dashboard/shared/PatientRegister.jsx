@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPatient, getDepartments, getTreatments, createAppointment } from '../../../api/patients';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { FaCheckCircle, FaHourglassHalf } from 'react-icons/fa';
+import { FaCheckCircle, FaHourglassHalf, FaExclamationTriangle, FaCalendarAlt, FaUser, FaLeaf, FaFirstAid, FaHospital, FaStethoscope } from 'react-icons/fa';
 import ConsultationWorkspace from '../doctor/ConsultationWorkspace';
 
 const INITIAL = {
@@ -213,7 +213,7 @@ export default function PatientRegister() {
 
           {appointment && (
             <div className="card card-body" style={{ margin: '0 auto 24px', maxWidth: '400px', textAlign: 'left', border: '1px dashed var(--primary)' }}>
-              <h4 style={{ color: 'var(--primary)', marginBottom: 8 }}>📅 Scheduled Appointment</h4>
+              <h4 style={{ color: 'var(--primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><FaCalendarAlt /> Scheduled Appointment</h4>
               <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div><strong>Branch:</strong> {appointment.branch_name || branches.find(b => String(b.id) === String(appointment.branch))?.name || 'Main Branch'}</div>
                 <div><strong>Date:</strong> {appointment.scheduled_date}</div>
@@ -230,7 +230,7 @@ export default function PatientRegister() {
                 onClick={() => setShowConsultModal(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontSize: '1.05rem' }}
               >
-                🩺 Start Consultation
+                <FaStethoscope /> Start Consultation
               </button>
             )}
             <button 
@@ -279,7 +279,7 @@ export default function PatientRegister() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {error && <div className="alert alert-danger" style={{ marginBottom: 20 }}>⚠️ {error}</div>}
+        {error && <div className="alert alert-danger" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}><FaExclamationTriangle /> {error}</div>}
 
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16 }}>
           Fields marked <span style={{ color: 'var(--danger)', fontWeight: 700 }}>*</span> are required.
@@ -287,7 +287,7 @@ export default function PatientRegister() {
 
         {/* Section 1: Basic Info */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
-          <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>👤 Personal Information</h4>
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}><FaUser /> Personal Information</h4>
           <div className="form-grid">
             <Field label="First Name" name="first_name" required form={form} onChange={handleChange} />
             <Field label="Last Name" name="last_name" form={form} onChange={handleChange} />
@@ -339,7 +339,7 @@ export default function PatientRegister() {
               style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--moss)' }}
             />
             <div>
-              <strong style={{ fontSize: '1.05rem', color: bookAppointment ? 'var(--moss)' : 'var(--navy)' }}>📅 Book Appointment Immediately</strong>
+              <strong style={{ fontSize: '1.05rem', color: bookAppointment ? 'var(--moss)' : 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}><FaCalendarAlt /> Book Appointment Immediately</strong>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>Automatically schedule a visit/consultation slot for this patient after registering.</div>
             </div>
           </label>
@@ -474,7 +474,7 @@ export default function PatientRegister() {
 
         {/* Section 3: Ayurvedic & Clinical Assessment */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
-          <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🌿 Ayurvedic & Clinical Profile</h4>
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}><FaLeaf /> Ayurvedic &amp; Clinical Profile</h4>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Primary Department</label>
@@ -506,7 +506,7 @@ export default function PatientRegister() {
 
         {/* Section 4: Emergency Contact */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
-          <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🆘 Emergency Contact</h4>
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}><FaFirstAid /> Emergency Contact</h4>
           <div className="form-grid">
             <Field label="Contact Name" name="emergency_contact_name" form={form} onChange={handleChange} />
             <Field label="Contact Phone" name="emergency_contact_phone" form={form} onChange={handleChange} />
@@ -515,7 +515,7 @@ export default function PatientRegister() {
 
         {/* Section 5: Medical History */}
         <div className="card card-body" style={{ marginBottom: 20 }}>
-          <h4 style={{ marginBottom: 20, color: 'var(--primary)' }}>🏥 Medical History</h4>
+          <h4 style={{ marginBottom: 20, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}><FaHospital /> Medical History</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             <Field label="Past Medical History" name="medical_history" type="textarea" form={form} onChange={handleChange} />
             <Field label="Known Allergies" name="allergies" type="textarea" form={form} onChange={handleChange} />

@@ -331,10 +331,10 @@ class PatientFullHistoryView(APIView):
 
         # Bills
         from billing.models import Bill
-        from billing.serializers import BillListSerializer
+        from billing.serializers import BillSerializer
         try:
             bills = Bill.objects.filter(patient=patient).order_by('-created_at')[:20]
-            bills_data = BillListSerializer(bills, many=True).data
+            bills_data = BillSerializer(bills, many=True).data
         except Exception:
             bills_data = []
 

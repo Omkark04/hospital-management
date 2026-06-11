@@ -9,7 +9,10 @@ import {
   FaDownload, 
   FaStickyNote, 
   FaCalendarDay, 
-  FaExclamationTriangle 
+  FaExclamationTriangle,
+  FaMobileAlt,
+  FaCalendarAlt,
+  FaClock
 } from 'react-icons/fa';
 import { 
   getQuickNotes, 
@@ -206,7 +209,7 @@ export default function TelecallingDashboard() {
 
       <div className="page-header" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2>📞 Telecalling</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FaPhoneAlt /> Telecalling</h2>
           <p>Follow up with patients directly.</p>
         </div>
         <button onClick={handleExportList} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -268,9 +271,9 @@ export default function TelecallingDashboard() {
                     <div>
                       <h4 style={{ margin: 0, fontSize: '1.05rem' }}>{p.first_name} {p.last_name}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        <div>📱 Phone: {p.phone}</div>
-                        {p.last_appointment_date && <div>📅 Last Visit: {p.last_appointment_date}</div>}
-                        {p.next_appointment_date && <div>⏰ Next Visit: {p.next_appointment_date}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FaMobileAlt size={11} /> Phone: {p.phone}</div>
+                        {p.last_appointment_date && <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FaCalendarAlt size={11} /> Last Visit: {p.last_appointment_date}</div>}
+                        {p.next_appointment_date && <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FaClock size={11} /> Next Visit: {p.next_appointment_date}</div>}
                       </div>
                     </div>
                     <button onClick={() => fetchHistory(p.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>

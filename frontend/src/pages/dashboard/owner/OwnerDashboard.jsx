@@ -12,7 +12,7 @@ import { getReferrals } from '../../../api/referrals';
 import { 
   FaUserInjured, FaUsers, FaBullhorn, FaBuilding, FaBox, 
   FaUserCircle, FaLink, FaBell, FaChartLine, FaBolt, FaPlane, 
-  FaCommentAlt, FaCrown, FaMoneyBillWave, FaFileInvoiceDollar, FaDownload, FaTrash 
+  FaCommentAlt, FaCrown, FaMoneyBillWave, FaFileInvoiceDollar, FaDownload, FaTrash, FaExclamationTriangle
 } from 'react-icons/fa';
 import BranchDetailModal from './BranchDetailModal';
 
@@ -353,7 +353,7 @@ export default function OwnerDashboard() {
             </div>
           ) : dropboxError ? (
             <div style={{ fontSize: '0.8rem', color: 'var(--danger, #dc2626)', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 6, padding: '6px 10px' }}>
-              ⚠ {dropboxError}
+              <FaExclamationTriangle style={{ marginRight: 6, flexShrink: 0 }} /> {dropboxError}
             </div>
           ) : (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>

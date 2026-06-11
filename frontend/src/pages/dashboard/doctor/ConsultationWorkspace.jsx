@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaPrescriptionBottleAlt, FaFileInvoice, FaNotesMedical, FaSave, FaCheck, FaCalendarPlus, FaWhatsapp, FaForward, FaLeaf } from 'react-icons/fa';
+import { FaTimes, FaPrescriptionBottleAlt, FaFileInvoice, FaNotesMedical, FaSave, FaCheck, FaCalendarPlus, FaWhatsapp, FaForward, FaLeaf, FaClipboardList } from 'react-icons/fa';
 import { getMedicines, createPrescription } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
 import { createBill, updatePayment } from '../../../api/billing';
@@ -563,7 +563,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
               style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
               onClick={() => setShowHistoryPanel(true)}
             >
-              📋 Patient History
+              <FaClipboardList /> Patient History
             </button>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer' }}><FaTimes/></button>
           </div>
@@ -660,7 +660,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
               {/* Empty state hint when no items added */}
               {rxForm.items.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-card)', borderRadius: 12, border: '2px dashed var(--border)', marginBottom: 16 }}>
-                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>💊</div>
+                  <div style={{ fontSize: '2rem', marginBottom: 8, color: 'var(--primary)', opacity: 0.4 }}><FaPrescriptionBottleAlt /></div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>No medicines added. Click <strong>+ Add Item</strong> to add, or skip directly to billing.</p>
                 </div>
               )}

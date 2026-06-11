@@ -10,7 +10,7 @@
  *   required     — boolean (optional)
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FaSearch, FaTimes, FaUserInjured } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaUserInjured, FaPhone } from 'react-icons/fa';
 import { getPatients } from '../../api/patients';
 
 export default function PatientSearchInput({ value, onSelect, onClear, placeholder = 'Search by name or mobile…', required = false }) {
@@ -158,7 +158,7 @@ export default function PatientSearchInput({ value, onSelect, onClear, placehold
                 {p.first_name} {p.last_name}
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: 10 }}>
-                <span>📞 {p.phone}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FaPhone size={10} /> {p.phone}</span>
                 {p.uhid && <span>UHID: {p.uhid}</span>}
                 {p.age && <span>Age: {p.age}</span>}
               </span>

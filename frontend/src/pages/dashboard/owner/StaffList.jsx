@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStaff, createStaff, updateStaff, deleteStaff } from '../../../api/auth';
 import { getBranches, getHospitals } from '../../../api/branches';
-import { FaUsers, FaTrash, FaEdit, FaBriefcase, FaLock, FaEye, FaEyeSlash, FaInfoCircle } from 'react-icons/fa';
+import { FaUsers, FaTrash, FaEdit, FaBriefcase, FaLock, FaEye, FaEyeSlash, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 const ROLES = ['doctor', 'receptionist', 'employee'];
 const ROLE_COLORS = {
@@ -553,7 +553,7 @@ export default function StaffList() {
                     alignItems: 'flex-start',
                     gap: 8,
                   }}>
-                    <span style={{ flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                    <FaExclamationTriangle style={{ flexShrink: 0, marginTop: 2 }} />
                     <span>{saveError}</span>
                   </div>
                 )}

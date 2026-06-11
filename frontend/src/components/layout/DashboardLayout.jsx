@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, Navigate, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
-import { FaMapMarkerAlt, FaUserCircle, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaUserCircle, FaSignOutAlt, FaChevronDown, FaBars } from 'react-icons/fa';
 
 const pageTitles = {
   '/dashboard': { title: 'Dashboard', desc: "Welcome back! Here's what's happening today." },
@@ -92,7 +92,7 @@ export default function DashboardLayout() {
         {/* Top bar */}
         <header className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+            <button className="hamburger" onClick={() => setSidebarOpen(true)}><FaBars size={18} /></button>
             <div className="topbar-title">
               <h1>{pageInfo.title}</h1>
             </div>
