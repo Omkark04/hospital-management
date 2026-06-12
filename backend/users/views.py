@@ -108,6 +108,7 @@ class StaffListCreateView(generics.ListCreateAPIView):
             pass
         user = self.request.user
         from django.db.models import Q
+        qs = CustomUser.objects.exclude(role=UserRole.PATIENT).select_related('branch', 'employee_profile')
         if user.role == UserRole.OWNER:
             # Owner sees all staff in their branches OR unassigned staff (as they might be the ones to assign them)
             from branches.models import Branch
