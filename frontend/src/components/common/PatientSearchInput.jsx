@@ -4,6 +4,7 @@
  *
  * Props:
  *   value        — currently selected patient ID (string or number)
+ *   initialLabel — display label to show when a patient is pre-selected (e.g. when editing)
  *   onSelect     — (patient) => void — called when a patient is chosen
  *   onClear      — () => void — called when selection is cleared
  *   placeholder  — string (optional)
@@ -13,7 +14,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSearch, FaTimes, FaUserInjured, FaPhone } from 'react-icons/fa';
 import { getPatients } from '../../api/patients';
 
-export default function PatientSearchInput({ value, onSelect, onClear, placeholder = 'Search by name or mobile…', required = false }) {
+export default function PatientSearchInput({ value, initialLabel = '', onSelect, onClear, placeholder = 'Search by name or mobile…', required = false }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,15 @@ export default function PatientSearchInput({ value, onSelect, onClear, placehold
   const [selectedLabel, setSelectedLabel] = useState('');
   const debounceRef = useRef(null);
   const containerRef = useRef(null);
+
+  // Seed the label when a patient is pre-selected (e.g. opening edit/reschedule modal)
+  useEffect(() => {
+    if (value && initialLabel) {
+      setSelectedLabel(initialLabel);
+    } else if (!value) {
+      setSelectedLabel('');
+    }
+  }, [value, initialLabel]);
 
   // Close on outside click
   useEffect(() => {

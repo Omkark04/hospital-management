@@ -98,6 +98,9 @@ DATABASES = {
 DATABASE_URL = os.getenv('DATABASE_URL', '')
 if DATABASE_URL:
     DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    # Health-check each persistent connection before reuse.
+    # Prevents stale/dropped Railway proxy connections from causing 500 errors.
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 # ─────────────────────────── Custom Auth User ─────────────────
 AUTH_USER_MODEL = 'users.CustomUser'

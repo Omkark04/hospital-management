@@ -334,6 +334,7 @@ export default function AppointmentList() {
                     <label className="form-label">Patient *</label>
                     <PatientSearchInput
                       value={form.patient}
+                      initialLabel={selectedPatient?.label || ''}
                       onSelect={(p) => {
                         setSelectedPatient(p);
                         setForm(prev => ({
