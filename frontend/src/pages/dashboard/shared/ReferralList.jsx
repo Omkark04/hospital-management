@@ -14,7 +14,7 @@ export default function ReferralList() {
     setLoading(true);
     getReferrals({ status: statusFilter || undefined })
       .then(({ data }) => setReferrals(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [statusFilter]);
 

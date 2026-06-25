@@ -18,7 +18,7 @@ export default function ProfilePage() {
   useEffect(() => {
     getProfile()
       .then(({ data }) => { setProfile(data); setForm({ first_name: data.first_name, last_name: data.last_name, email: data.email || '', phone: data.phone || '' }); })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

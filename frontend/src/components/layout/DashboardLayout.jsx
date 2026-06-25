@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Outlet, Navigate, useNavigate, NavLink } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import { FaMapMarkerAlt, FaUserCircle, FaSignOutAlt, FaChevronDown, FaBars } from 'react-icons/fa';
@@ -37,11 +38,11 @@ const pageTitles = {
 };
 
 const ROLE_COLORS = {
-  owner: '#7c3aed',
-  doctor: '#0f766e',
-  receptionist: '#b45309',
-  employee: '#1d4ed8',
-  patient: '#be185d',
+  owner:        '#047857',   /* green-darker */
+  doctor:       '#059669',   /* green-dark    */
+  receptionist: '#0891b2',   /* cyan-dark     */
+  employee:     '#0e7490',   /* cyan-darker   */
+  patient:      '#10b981',   /* green         */
 };
 
 export default function DashboardLayout() {
@@ -49,12 +50,16 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [overlayPos, setOverlayPos] = useState({ top: 0, right: 0 });
   const profileRef = useRef(null);
+  const overlayRef = useRef(null);
 
-  // Close overlay on outside click
+  // Close overlay on outside click — must exclude the portal div too
   useEffect(() => {
     const handler = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
+      const clickedInsideButton = profileRef.current && profileRef.current.contains(e.target);
+      const clickedInsideOverlay = overlayRef.current && overlayRef.current.contains(e.target);
+      if (!clickedInsideButton && !clickedInsideOverlay) {
         setProfileOpen(false);
       }
     };
@@ -66,6 +71,11 @@ export default function DashboardLayout() {
     setProfileOpen(false);
     await logout();
     navigate('/login');
+  };
+
+  const handleViewProfile = () => {
+    setProfileOpen(false);
+    navigate('/dashboard/profile');
   };
 
   if (loading) {
@@ -107,39 +117,65 @@ export default function DashboardLayout() {
             {/* Profile Avatar with Overlay */}
             <div ref={profileRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setProfileOpen(v => !v)}
+                onClick={() => {
+                  if (profileRef.current) {
+                    const rect = profileRef.current.getBoundingClientRect();
+                    setOverlayPos({
+                      top: rect.bottom + 10,
+                      right: window.innerWidth - rect.right,
+                    });
+                  }
+                  setProfileOpen(v => !v);
+                }}
                 title="Profile"
                 style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${roleColor}, var(--secondary))`,
+                  width: 38, height: 38, borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${roleColor}, #06b6d4)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 700, fontSize: '0.9rem', color: 'white',
-                  cursor: 'pointer', border: profileOpen ? '2px solid white' : '2px solid transparent',
-                  boxShadow: profileOpen ? `0 0 0 3px ${roleColor}44` : 'none',
+                  cursor: 'pointer',
+                  border: '2px solid white',
+                  boxShadow: `0 0 0 2.5px ${roleColor}`,
                   transition: 'all 0.2s',
                 }}
               >
                 {initials}
               </button>
 
-              {/* Profile overlay */}
-              {profileOpen && (
+              {/* Profile overlay — rendered via portal to escape topbar stacking context */}
+              {profileOpen && createPortal(
                 <>
-                  {/* Mobile backdrop */}
+                  {/* Backdrop (always rendered, CSS shows it on mobile) */}
                   <div
-                    style={{ display: 'none' }}
-                    className="profile-mobile-backdrop"
+                    style={{
+                      position: 'fixed', inset: 0,
+                      background: 'rgba(0,0,0,0.4)',
+                      zIndex: 9998,
+                      display: window.innerWidth <= 640 ? 'block' : 'none',
+                    }}
                     onClick={() => setProfileOpen(false)}
                   />
+
+                  {/* Overlay card */}
                   <div
-                    className="profile-overlay"
+                    ref={overlayRef}
                     style={{
-                      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+                      position: 'fixed',
+                      /* Desktop: anchor near avatar button */
+                      top: window.innerWidth > 640 ? overlayPos.top : 'auto',
+                      right: window.innerWidth > 640 ? overlayPos.right : 0,
+                      /* Mobile: full-width bottom sheet */
+                      bottom: window.innerWidth <= 640 ? 0 : 'auto',
+                      left: window.innerWidth <= 640 ? 0 : 'auto',
+                      borderRadius: window.innerWidth <= 640 ? '20px 20px 0 0' : 16,
+                      width: window.innerWidth <= 640 ? '100%' : 240,
                       background: 'var(--bg-card)', border: '1px solid var(--border)',
-                      borderRadius: 16, minWidth: 240,
                       boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
                       zIndex: 9999, overflow: 'hidden',
-                      animation: 'fadeSlideDown 0.18s ease-out',
+                      maxHeight: '80vh', overflowY: 'auto',
+                      animation: window.innerWidth <= 640
+                        ? 'slideUp 0.22s ease'
+                        : 'fadeSlideDown 0.18s ease-out',
                     }}
                   >
                     {/* Header gradient strip */}
@@ -164,15 +200,14 @@ export default function DashboardLayout() {
 
                     {/* Actions */}
                     <div style={{ padding: '8px' }}>
-                      <NavLink
-                        to="/dashboard/profile"
-                        onClick={() => setProfileOpen(false)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, color: 'var(--text-primary)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, transition: 'background 0.15s' }}
+                      <button
+                        onClick={handleViewProfile}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s', textAlign: 'left' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <FaUserCircle size={16} color={roleColor} /> View Profile
-                      </NavLink>
+                      </button>
                       <button
                         onClick={handleLogout}
                         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s', textAlign: 'left' }}
@@ -183,7 +218,8 @@ export default function DashboardLayout() {
                       </button>
                     </div>
                   </div>
-                </>
+                </>,
+                document.body
               )}
             </div>
           </div>

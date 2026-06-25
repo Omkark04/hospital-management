@@ -41,7 +41,7 @@ export default function NotificationCenter() {
 
     request
       .then(({ data }) => setNotifications(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [canViewAll, statusFilter]);
 

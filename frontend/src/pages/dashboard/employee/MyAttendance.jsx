@@ -20,7 +20,7 @@ export default function MyAttendance() {
           : all;
         setRecords(filtered);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [monthFilter]);
 

@@ -52,7 +52,7 @@ export default function Testimonials() {
           setReviews(res.data);
         }
       })
-      .catch(err => console.error('Failed to load reviews:', err));
+      .catch(() => {});
   }, []);
 
   return (

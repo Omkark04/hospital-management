@@ -38,7 +38,7 @@ export default function PatientList() {
         setTotalCount(data.count || (data.results || data).length);
         setSelectedIds([]);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [search, page, sortKey, lastVisitFilter]);
 
@@ -109,12 +109,10 @@ export default function PatientList() {
   const handleImport = async (e) => {
     e.preventDefault();
     if (!importFile) return alert("Please select a file.");
-    
-    console.log("=== Patient Import Started ===");
-    console.log("File Name:", importFile.name);
-    console.log("File Size:", importFile.size, "bytes");
-    console.log("File Type:", importFile.type);
-    
+
+
+
+
     setImporting(true);
     setImportError(null);
     setImportResult(null);
@@ -122,18 +120,17 @@ export default function PatientList() {
       const { importPatients } = await import('../../../api/patients');
       const formData = new FormData();
       formData.append('file', importFile);
-      
-      console.log("Sending import request with FormData...");
+
       const res = await importPatients(formData);
-      console.log("Import request response:", res);
+
       setImportResult(res.data);
       fetchPatients(); // refresh list
     } catch (err) {
-      console.error("Import request failed:", err);
+
       if (err.response) {
-        console.error("Response data:", err.response.data);
-        console.error("Response status:", err.response.status);
-        console.error("Response headers:", err.response.headers);
+
+
+
       }
       setImportError(err.response?.data?.error || err.response?.data?.detail || "Failed to import patients");
     } finally {

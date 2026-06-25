@@ -42,7 +42,7 @@ export default function BillingList() {
       udhari_due_date: udhariDueDate || undefined
     })
       .then(({ data }) => setBills(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [statusFilter, search, sortKey, startDate, endDate, udhariFilter, udhariDueDate]);
 
@@ -172,11 +172,11 @@ export default function BillingList() {
       }
       fetchBills();
     } catch (err) {
-      console.error('Billing Error Object:', err);
+
       const errorData = err.response?.data;
       const msg = errorData ? (typeof errorData === 'object' ? JSON.stringify(errorData) : errorData) : 'Failed to save bill. Check connection.';
       alert(`Error: ${msg}`);
-      console.error('Billing Error Data:', errorData);
+
     }
     finally { setSaving(false); }
   };

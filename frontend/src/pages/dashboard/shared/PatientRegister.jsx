@@ -79,12 +79,12 @@ export default function PatientRegister() {
   const todayISO = getTodayISO();
 
   useEffect(() => {
-    getDepartments().then(({ data }) => setDepartments(data.results || data)).catch(() => console.warn('Run migrations for departments'));
+    getDepartments().then(({ data }) => setDepartments(data.results || data)).catch(() => {});
     
     // Fetch branches
     api.get('/branches/public/')
       .then(({ data }) => setBranches(data.results || data))
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function PatientRegister() {
           setAvailableSlots(res.data.slots || []);
         })
         .catch(err => {
-          console.error(err);
+
           setAvailableSlots([]);
         })
         .finally(() => setLoadingSlots(false));

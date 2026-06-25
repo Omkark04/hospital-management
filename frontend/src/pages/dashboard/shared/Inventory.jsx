@@ -39,7 +39,7 @@ export default function Inventory() {
       const res = await api.get(endpoint, { params });
       setItems(res.data.results || res.data);
     } catch (err) {
-      console.error('Failed to fetch items', err);
+
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function Inventory() {
     if (user?.role === 'owner') {
       getBranches().then(res => {
         setBranches(res.data.results || res.data);
-      }).catch(err => console.error('Failed to fetch branches', err));
+      }).catch(() => {});
     }
   }, [user]);
 

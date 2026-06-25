@@ -196,7 +196,7 @@ export default function TherapyList() {
     setLoading(true);
     api.get('/therapies/')
       .then(res => setTherapies(res.data.results || res.data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -207,16 +207,16 @@ export default function TherapyList() {
   useEffect(() => {
     api.get('/medicines/')
       .then(res => setAllMedicines(res.data.results || res.data))
-      .catch(console.error);
+      .catch(() => {});
 
     api.get('/products/prescription-products/')
       .then(res => setAllProducts(res.data.results || res.data))
-      .catch(console.error);
+      .catch(() => {});
 
     if (isOwner) {
       api.get('/branches/')
         .then(res => setAllBranches(res.data.results || res.data))
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [isOwner]);
 

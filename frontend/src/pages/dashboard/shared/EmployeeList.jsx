@@ -47,7 +47,7 @@ export default function EmployeeList() {
         const unique = Array.from(new Set(rows.map(e => e.designation).filter(Boolean)));
         setDesignations(unique);
       })
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   // Fetch branches for filter options if owner
@@ -55,7 +55,7 @@ export default function EmployeeList() {
     if (user?.role === 'owner') {
       getBranches()
         .then(({ data }) => setBranches(data.results || data))
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [user]);
 
@@ -75,7 +75,7 @@ export default function EmployeeList() {
       designation: selectedDesignation || undefined
     })
       .then(({ data }) => setEmployees(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [debouncedSearch, selectedBranch, selectedDesignation]);
 

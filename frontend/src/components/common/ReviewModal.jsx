@@ -16,7 +16,7 @@ export default function ReviewModal({ isOpen, onClose }) {
       await api.post('/patients/public/reviews/', form);
       setSuccess(true);
     } catch (err) {
-      console.error('Failed to submit review', err);
+
       alert('There was an error submitting your review. Please try again.');
     } finally {
       setSubmitting(false);

@@ -59,7 +59,7 @@ export default function PatientSearchInput({ value, initialLabel = '', onSelect,
           setResults(rows);
           setOpen(true);
         })
-        .catch(console.error)
+        .catch(() => {})
         .finally(() => setLoading(false));
     }, 300);
   }, [query]);

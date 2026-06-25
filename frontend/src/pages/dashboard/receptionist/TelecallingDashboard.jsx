@@ -61,7 +61,7 @@ export default function TelecallingDashboard() {
         setPatients(rows);
         setTotalCount(data.count || rows.length);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [activeTab, debouncedSearch, page]);
 
@@ -70,7 +70,7 @@ export default function TelecallingDashboard() {
       .then(({ data }) => {
         setQuickNotes(data.results || data);
       })
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -29,7 +29,7 @@ export default function MyCampaigns() {
 
     getMyCampaigns()
       .then(({ data }) => setCampaigns(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -83,7 +83,7 @@ export default function MyCampaigns() {
           status: 'completed',
           reason: patientForm.complaint || 'Campaign walk-in'
         });
-      } catch(appErr) { console.error('Appointment silent fail (perhaps not required depending on backend)', appErr); }
+      } catch(appErr) { /* appointment creation is optional */ }
 
       // 3. Link to Campaign
       await addCampaignPatient(selected.id, {

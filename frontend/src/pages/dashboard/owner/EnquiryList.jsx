@@ -13,7 +13,7 @@ export default function EnquiryList() {
     setLoading(true);
     getEnquiries({ status: statusFilter || undefined })
       .then(({ data }) => setEnquiries(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [statusFilter]);
 

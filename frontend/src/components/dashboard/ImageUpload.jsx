@@ -28,7 +28,7 @@ export default function ImageUpload({ onUploadSuccess, currentImage }) {
       );
       onUploadSuccess(res.data.secure_url);
     } catch (err) {
-      console.error('Upload error:', err);
+
       setError('Upload failed. Check console for details.');
     } finally {
       setUploading(false);

@@ -17,7 +17,7 @@ function PatientHistoryPanel({ patientId }) {
       setLoading(true);
       api.get(`/patients/${patientId}/full-history/`)
         .then(res => setHistory(res.data))
-        .catch(console.error)
+        .catch(() => {})
         .finally(() => setLoading(false));
     }
   }, [patientId]);
@@ -263,7 +263,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
       setLoadingPatientTherapies(true);
       api.get(`/therapies/patient/${appointment.patient}/`)
         .then(res => setPatientTherapies(res.data.results || res.data))
-        .catch(console.error)
+        .catch(() => {})
         .finally(() => setLoadingPatientTherapies(false));
     }
   }, [appointment.patient]);
@@ -284,7 +284,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
     fetchPatientTherapies();
     api.get('/therapies/')
       .then(res => setTherapiesList(res.data.results || res.data))
-      .catch(console.error);
+      .catch(() => {});
   }, [fetchPatientTherapies]);
 
   // Fetch slots for follow-up appointment date
@@ -296,7 +296,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
           setAvailableSlots(res.data.slots || []);
         })
         .catch(err => {
-          console.error(err);
+
           setAvailableSlots([]);
         })
         .finally(() => setLoadingSlots(false));

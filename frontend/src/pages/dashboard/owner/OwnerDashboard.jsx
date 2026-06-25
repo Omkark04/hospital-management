@@ -73,7 +73,7 @@ export default function OwnerDashboard() {
       const res = await api.get('/billing/bulk-manage/', { params: { action: 'usage' } });
       setDropboxUsage(res.data);
     } catch (err) {
-      console.error('[Dropbox] Could not fetch storage usage:', err?.response?.data || err.message);
+
       setDropboxError('Could not fetch Dropbox storage usage. Check app permissions and token settings.');
     } finally {
       setCheckingUsage(false);

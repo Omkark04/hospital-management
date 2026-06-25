@@ -17,7 +17,7 @@ export default function MyLeaves() {
     setLoading(true);
     getLeaves()
       .then(({ data }) => setLeaves(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 

@@ -58,7 +58,7 @@ export default function ProductManage() {
         setCategories(medicineCategories);
       }
     } catch (err) {
-      console.error('Fetch error:', err);
+
     } finally {
       setLoading(false);
     }
@@ -125,7 +125,7 @@ export default function ProductManage() {
       setShowProductModal(false);
       fetchData();
     } catch (err) {
-      console.error('Save Error:', err.response?.data);
+
       alert('Error saving item: ' + JSON.stringify(err.response?.data));
     } finally {
       setSaving(false);

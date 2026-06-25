@@ -16,7 +16,7 @@ export default function LowStockBanner({ type = 'medicine' }) {
       const res = await api.get(endpoint);
       setLowStockItems(res.data);
     } catch (err) {
-      console.error('Failed to fetch low stock', err);
+
     }
   };
 

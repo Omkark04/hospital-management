@@ -13,7 +13,7 @@ export default function ScanAttendance() {
     // Cleanup scanner on unmount
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
+        scannerRef.current.clear().catch(() => {});
       }
     };
   }, []);
@@ -46,7 +46,7 @@ export default function ScanAttendance() {
 
   const onScanSuccess = async (decodedText) => {
     if (scannerRef.current) {
-      scannerRef.current.clear().catch(console.error);
+      scannerRef.current.clear().catch(() => {});
       scannerRef.current = null;
     }
     

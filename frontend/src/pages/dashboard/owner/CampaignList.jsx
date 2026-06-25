@@ -26,7 +26,7 @@ export default function CampaignList() {
         setBranches(b.data.results || b.data);
         setStaff(s.data.results || s.data);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,7 +51,7 @@ export default function CampaignList() {
           try {
             await assignCampaignManager({ campaign: res.data.id, user: form.assigned_doctor });
           } catch(err) {
-            console.error("Failed to automatically assign doctor", err);
+
           }
         }
       }

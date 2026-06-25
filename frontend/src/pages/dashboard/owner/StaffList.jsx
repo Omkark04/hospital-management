@@ -63,7 +63,7 @@ export default function StaffList() {
         setBranches(b.data.results || b.data);
         setHospitals(h.data.results || h.data);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [roleFilter, debouncedSearch, selectedBranch]);
 

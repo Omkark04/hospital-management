@@ -19,7 +19,7 @@ export default function Products() {
         setProducts(prodRes.data.results || prodRes.data);
         setCategories(catRes.data.results || catRes.data);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [filters]);
 

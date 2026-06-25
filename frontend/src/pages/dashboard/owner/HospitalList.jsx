@@ -14,7 +14,7 @@ export default function HospitalList() {
     setLoading(true);
     getHospitals()
       .then(({ data }) => setHospitals(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

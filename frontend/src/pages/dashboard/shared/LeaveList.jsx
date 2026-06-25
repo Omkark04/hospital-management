@@ -21,7 +21,7 @@ export default function LeaveList() {
     setLoading(true);
     getLeaves({ status: statusFilter || undefined })
       .then(({ data }) => setLeaves(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [statusFilter]);
 

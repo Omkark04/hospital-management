@@ -49,7 +49,7 @@ export default function AppointmentList() {
     if (isPatient) {
       getMyProfile()
         .then(({ data }) => setMyPatientId(data.id))
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [isPatient]);
 
@@ -57,7 +57,7 @@ export default function AppointmentList() {
   useEffect(() => {
     api.get('/branches/public/')
       .then(({ data }) => setBranches(data.results || data))
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   // Fetch available slots when branch or scheduled_date changes
@@ -69,7 +69,7 @@ export default function AppointmentList() {
           setAvailableSlots(res.data.slots || []);
         })
         .catch(err => {
-          console.error(err);
+
           setAvailableSlots([]);
         })
         .finally(() => setLoadingSlots(false));
@@ -90,7 +90,7 @@ export default function AppointmentList() {
       branch: branchFilter || undefined
     })
       .then(({ data }) => setAppointments(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [filterDate, search, sortKey, startDate, endDate, statusFilter, branchFilter]);
 

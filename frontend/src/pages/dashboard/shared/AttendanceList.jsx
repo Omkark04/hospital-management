@@ -26,7 +26,7 @@ export default function AttendanceList() {
     if (employeeFilter) params.employee = employeeFilter;
     getAttendance(params)
       .then(({ data }) => setRecords(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [date, employeeFilter]);
 
@@ -36,7 +36,7 @@ export default function AttendanceList() {
   useEffect(() => {
     getEmployees()
       .then(({ data }) => setEmployees(data.results || data))
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   const summary = ['present', 'absent', 'half_day', 'on_leave', 'holiday'].map(s => ({

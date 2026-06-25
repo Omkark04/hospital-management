@@ -27,9 +27,9 @@ export default function BookAppointment() {
       const data = res.data.results || res.data;
       setBranches(data);
       if(data.length > 0) setForm(f => ({ ...f, branch: data[0].id }));
-    }).catch(console.error);
+    }).catch(() => {});
 
-    api.get('/patients/departments/').then(res => setDepartments(res.data.results || res.data)).catch(console.error);
+    api.get('/patients/departments/').then(res => setDepartments(res.data.results || res.data)).catch(() => {});
   }, []);
 
   // Fetch treatments when department changes
@@ -37,7 +37,7 @@ export default function BookAppointment() {
     if (form.department) {
       api.get(`/patients/treatments/?department=${form.department}`)
         .then(res => setTreatments(res.data.results || res.data))
-        .catch(console.error);
+        .catch(() => {});
     } else {
       setTreatments([]);
     }
@@ -54,7 +54,7 @@ export default function BookAppointment() {
           setForm(f => ({ ...f, scheduled_time: '' })); // Reset time
         })
         .catch(err => {
-          console.error(err);
+
           setAvailableSlots([]);
         })
         .finally(() => setLoadingSlots(false));
@@ -75,7 +75,7 @@ export default function BookAppointment() {
       await api.post('/patients/public/book/', form);
       setSent(true);
     } catch (err) {
-      console.error(err);
+
       alert("There was an error booking your appointment. Please try again or call us.");
     } finally {
       setSubmitting(false);

@@ -52,7 +52,7 @@ export default function PrescriptionList() {
       created_before: endDate || undefined
     })
       .then(({ data }) => setPrescriptions(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [search, sortKey, startDate, endDate]);
 
@@ -112,7 +112,7 @@ export default function PrescriptionList() {
     } catch (err) {
       const msg = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to save.';
       alert(msg);
-      console.error('Prescription Error:', err.response?.data);
+
     } finally {
       setSaving(false);
     }

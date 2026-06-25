@@ -14,7 +14,7 @@ export default function ReviewManage() {
     setLoading(true);
     api.get('/patients/reviews/admin/')
       .then(res => setReviews(res.data.results || res.data))
-      .catch(err => console.error(err))
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 

@@ -18,7 +18,7 @@ export default function AttendanceKiosk() {
       setTimeLeft(30);
       setError('');
     } catch (err) {
-      console.error(err);
+
       setError(err.response?.data?.error || 'Failed to fetch QR code');
       setWindowInfo(err.response?.data?.window_info || '');
     }

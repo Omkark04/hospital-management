@@ -15,7 +15,7 @@ export default function ProductDetail() {
     setLoading(true);
     getPublicProduct(id)
       .then(({ data }) => setProduct(data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 

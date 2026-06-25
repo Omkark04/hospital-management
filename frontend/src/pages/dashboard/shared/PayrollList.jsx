@@ -43,7 +43,7 @@ export default function PayrollList() {
     setLoading(true);
     getPayroll({ month })
       .then(({ data }) => setSlips(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [month]);
 
@@ -57,7 +57,7 @@ export default function PayrollList() {
   useEffect(() => {
     getEmployees()
       .then(({ data }) => setEmployees(data.results || data))
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   // Fetch Overtime Records & Configs
@@ -65,7 +65,7 @@ export default function PayrollList() {
     setLoadingOt(true);
     getOvertimeRecords()
       .then(({ data }) => setOtRecords(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoadingOt(false));
   }, []);
 
@@ -73,7 +73,7 @@ export default function PayrollList() {
     setLoadingOt(true);
     getOvertimeConfigs()
       .then(({ data }) => setOtConfigs(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoadingOt(false));
   }, []);
 
@@ -84,7 +84,7 @@ export default function PayrollList() {
       fetchOtConfigs();
       api.get('/branches/public/')
         .then(({ data }) => setBranches(data.results || data))
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [activeTab, fetchOtRecords, fetchOtConfigs]);
 

@@ -12,7 +12,7 @@ export default function MyBills() {
   useEffect(() => {
     getMyBills()
       .then(({ data }) => setBills(data.results || data))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

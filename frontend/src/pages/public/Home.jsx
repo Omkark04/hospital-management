@@ -157,7 +157,7 @@ export default function Home() {
 
     getPublicProducts({ limit: 4, category: 'Ayurvedic Products' })
       .then(({ data }) => setFeaturedProducts(data.results || data.slice(0, 4)))
-      .catch(console.error);
+      .catch(() => {});
 
     // Auto slider for testimonials
     const interval = setInterval(() => {
