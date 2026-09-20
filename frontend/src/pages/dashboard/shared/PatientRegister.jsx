@@ -8,7 +8,7 @@ import ConsultationWorkspace from '../doctor/ConsultationWorkspace';
 
 const INITIAL = {
   first_name: '', last_name: '', phone: '', email: '',
-  gender: 'other', blood_group: 'unknown', dob: '',
+  gender: '', blood_group: 'unknown', dob: '',
   address: '', emergency_contact_name: '', emergency_contact_phone: '',
   medical_history: '', allergies: '', chronic_conditions: '', branch: '',
   primary_department: '', interested_treatment: '', prakriti: 'unknown', chief_complaint: ''
@@ -294,8 +294,11 @@ export default function PatientRegister() {
             <Field label="Phone" name="phone" required form={form} onChange={handleChange} />
             <Field label="Email" name="email" type="email" form={form} onChange={handleChange} />
             <Field label="Date of Birth" name="dob" type="date" form={form} onChange={handleChange} />
-            <Field label="Gender" name="gender" form={form} onChange={handleChange} options={[
-              { value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }
+            <Field label="Gender" name="gender" required form={form} onChange={handleChange} options={[
+              { value: '', label: 'Select Gender' }, 
+              { value: 'male', label: 'Male' }, 
+              { value: 'female', label: 'Female' }, 
+              { value: 'other', label: 'Other' }
             ]} />
             {user?.role === 'owner' && (
               <div className="form-group">

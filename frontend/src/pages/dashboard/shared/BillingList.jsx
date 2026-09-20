@@ -68,7 +68,7 @@ export default function BillingList() {
 
   const openEdit = (bill) => {
     setForm({
-      patient: bill.patient,
+      patient: bill.patient ? String(bill.patient) : '',
       branch: bill.branch,
       payment_method: bill.payment_method,
       notes: bill.notes,
@@ -468,6 +468,9 @@ export default function BillingList() {
                     }}>
                       <option value="">Select patient...</option>
                       {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.uhid})</option>)}
+                      {form.patient && !patients.find(p => String(p.id) === String(form.patient)) && showEditModal && (
+                        <option value={form.patient}>{showEditModal.patient_name} ({showEditModal.patient_uhid})</option>
+                      )}
                     </select>
                   </div>
                    <div className="form-group">

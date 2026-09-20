@@ -6,6 +6,7 @@ from patients.models import Patient, Appointment, VisitNote
 from billing.models import Bill, BillItem
 from django.db.models import Count, Sum, Q
 from django.db.models.functions import TruncDay
+import datetime
 from datetime import timedelta
 from django.utils import timezone
 
@@ -14,7 +15,7 @@ def _parse_days(request, param_name='days', default=30):
     """Read param_name from query params and return (days_val, cutoff_date)."""
     val = request.query_params.get(param_name)
     if val == 'all':
-        return 'all', timezone.make_aware(timezone.datetime(2000, 1, 1))
+        return 'all', datetime.date(2000, 1, 1)
     
     try:
         days = int(val) if val else default
@@ -161,11 +162,26 @@ class DoctorSummaryView(APIView):
         doctor_patient_ids = Appointment.objects.filter(
             doctor=doctor, scheduled_date__gte=cutoff_main
         ).values_list('patient_id', flat=True)
-        revenue = Bill.objects.filter(
+        revenue_agg = Bill.objects.filter(
             patient_id__in=doctor_patient_ids,
             created_at__date__gte=cutoff_main
-        ).aggregate(total=Sum('total_amount'), collected=Sum('paid_amount'))
-        revenue = {k: float(v or 0) for k, v in revenue.items()}
+        ).aggregate(
+            total=Sum('total_amount'), 
+            collected=Sum('paid_amount'),
+            discount=Sum('discount')
+        )
+        total_gross = float(revenue_agg['total'] or 0)
+        total_discount = float(revenue_agg['discount'] or 0)
+        revenue = {
+            'total': total_gross - total_discount,
+            'collected': float(revenue_agg['collected'] or 0)
+        }
+
+        # Peak hours
+        _, cutoff_peak = _parse_days(request, 'peak_days', default=7) if 'peak_days' in request.query_params else ('', cutoff_main)
+        appointments_list = list(Appointment.objects.filter(
+            doctor=doctor, scheduled_date__gte=cutoff_peak
+        ).values('scheduled_date', 'scheduled_time'))
 
         return Response({
             'footfall': footfall,
@@ -173,5 +189,6 @@ class DoctorSummaryView(APIView):
             'upcoming': upcoming,
             'diagnoses': diagnoses,
             'revenue': revenue,
+            'appointments': appointments_list,
             'days': days_main,
         })
