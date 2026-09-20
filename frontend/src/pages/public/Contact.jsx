@@ -25,6 +25,7 @@ export default function Contact() {
   const contactItems = [
     { Icon: FiPhone,   label: 'Phone (Dr. Wagh)',     value: '+91 97633 31118', href: 'tel:+919763331118' },
     { Icon: FaWhatsapp,label: 'WhatsApp',             value: '+91 97633 31118', href: 'https://wa.me/919763331118' },
+    { Icon: FiMail,    label: 'Email',                value: 'contact@spinetherapist.in', href: 'mailto:contact@spinetherapist.in' },
 
     { Icon: FiMapPin,  label: 'Location',             value: 'Maharashtra, India', href: null },
     { Icon: FiClock,   label: 'Monday – Saturday',    value: '9:00 AM – 7:00 PM', href: null },

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'telecalling',
     'therapies',
     'reports',
+    'anymail',
 ]
 
 # ─────────────────────────── Middleware ───────────────────────
@@ -184,9 +185,9 @@ CSRF_TRUSTED_ORIGINS = _normalize_origins(
     os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173')
 )
 
-# ─────────────────────────── SMTP Email Backend ─────────────────
-DEFAULT_FROM_ADDRESS = os.getenv('DEFAULT_FROM_EMAIL', 'contact@spineclinic.in')
-DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'Hospital Management System')
+# ─────────────────────────── SMTP Email / Resend Backend ──────
+DEFAULT_FROM_ADDRESS = os.getenv('DEFAULT_FROM_EMAIL', 'contact@spinetherapist.in')
+DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'Dr. Spine & Nerves')
 DEFAULT_FROM_EMAIL = (
     formataddr((DEFAULT_FROM_NAME, DEFAULT_FROM_ADDRESS))
     if DEFAULT_FROM_NAME
@@ -194,17 +195,10 @@ DEFAULT_FROM_EMAIL = (
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-EMAIL_HOST = os.getenv('EMAIL_HOST', '')
-if EMAIL_HOST:
-    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', DEFAULT_FROM_ADDRESS)
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-else:
-    # Default to console backend if no SMTP host is configured
-    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+ANYMAIL = {
+    "RESEND_API_KEY": os.getenv("RESEND_API_KEY"),
+}
 
 # ─────────────────────────── Cloudinary (stub) ────────────────
 CLOUDINARY_STORAGE = {

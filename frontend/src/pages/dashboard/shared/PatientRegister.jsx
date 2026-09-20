@@ -292,7 +292,7 @@ export default function PatientRegister() {
             <Field label="First Name" name="first_name" required form={form} onChange={handleChange} />
             <Field label="Last Name" name="last_name" form={form} onChange={handleChange} />
             <Field label="Phone" name="phone" required form={form} onChange={handleChange} />
-            <Field label="Email" name="email" type="email" form={form} onChange={handleChange} />
+            <Field label="Email" name="email" type="email" required form={form} onChange={handleChange} />
             <Field label="Date of Birth" name="dob" type="date" form={form} onChange={handleChange} />
             <Field label="Gender" name="gender" required form={form} onChange={handleChange} options={[
               { value: '', label: 'Select Gender' }, 

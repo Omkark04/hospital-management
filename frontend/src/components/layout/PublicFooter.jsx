@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import Logo from '../../assets/Logo.png';
-import { FiPhone, FiMapPin, FiClock } from 'react-icons/fi';
+import { FiPhone, FiMapPin, FiClock, FiMail } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function PublicFooter() {
@@ -70,8 +70,11 @@ export default function PublicFooter() {
             <a href="tel:+919763331118" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <FiPhone size={13} /> +91 97633 31118
             </a>
+            <a href="mailto:contact@spinetherapist.in" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8 }}>
+              <FiMail size={13} /> contact@spinetherapist.in
+            </a>
 
-            <div style={{ color: 'rgba(255,252,240,0.55)', fontSize: '0.85rem', display: 'flex', gap: 7, alignItems: 'flex-start', marginTop: 4 }}>
+            <div style={{ color: 'rgba(255,252,240,0.55)', fontSize: '0.85rem', display: 'flex', gap: 7, alignItems: 'flex-start', marginTop: 10 }}>
               <FiMapPin size={13} style={{ flexShrink: 0, marginTop: 2 }} /><span>Maharashtra, India</span>
             </div>
             <div style={{ color: 'rgba(255,252,240,0.55)', fontSize: '0.85rem', display: 'flex', gap: 7, alignItems: 'center', marginTop: 8 }}>
