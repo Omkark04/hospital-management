@@ -54,6 +54,8 @@ const ProfilePage     = lazy(() => import('./pages/dashboard/shared/ProfilePage'
 const MyCampaigns     = lazy(() => import('./pages/dashboard/shared/MyCampaigns'));
 const NotificationCenter = lazy(() => import('./pages/dashboard/shared/NotificationCenter'));
 const ReviewManage    = lazy(() => import('./pages/dashboard/owner/ReviewManage'));
+const OwnerReports    = lazy(() => import('./pages/dashboard/owner/OwnerReports'));
+const DoctorReports   = lazy(() => import('./pages/dashboard/doctor/DoctorReports'));
 const MyBills         = lazy(() => import('./pages/dashboard/patient/MyBills'));
 const PatientReferral = lazy(() => import('./pages/dashboard/patient/PatientReferral'));
 
@@ -128,6 +130,10 @@ export default function App() {
               <Route path="campaigns" element={<CampaignList />} />
               <Route path="enquiries" element={<EnquiryList />} />
               <Route path="reviews" element={<ReviewManage />} />
+              <Route path="reports" element={<OwnerReports />} />
+
+              {/* Doctor */}
+              <Route path="doctor-reports" element={<DoctorReports />} />
 
               {/* Patient */}
               <Route path="my-appointments" element={<AppointmentList />} />

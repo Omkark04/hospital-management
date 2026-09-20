@@ -109,8 +109,8 @@ class BranchStatsView(APIView):
         branches = Branch.objects.filter(hospital__owner=request.user, is_active=True)
         stats = []
         for b in branches:
-            patients_count = b.patient_set.count() if hasattr(b, 'patient_set') else 0
-            employees_count = b.users.count() if hasattr(b, 'users') else 0
+            patients_count = b.patients.count() if hasattr(b, 'patients') else 0
+            employees_count = b.staff_members.count() if hasattr(b, 'staff_members') else 0
             
             from billing.models import Bill
             from django.db.models import Sum

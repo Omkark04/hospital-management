@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'notifications',
     'telecalling',
     'therapies',
+    'reports',
 ]
 
 # ─────────────────────────── Middleware ───────────────────────

@@ -49,4 +49,7 @@ urlpatterns = [
 
     # Therapies
     path('api/therapies/', include('therapies.urls', namespace='therapies')),
+
+    # Reports
+    path('api/reports/', include('reports.urls', namespace='reports')),
 ]

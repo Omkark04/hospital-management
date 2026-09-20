@@ -3,7 +3,7 @@ import { FaTimes, FaPrescriptionBottleAlt, FaFileInvoice, FaNotesMedical, FaSave
 import { getMedicines, createPrescription } from '../../../api/medicines';
 import { getPrescriptionProducts } from '../../../api/products';
 import { createBill, updatePayment } from '../../../api/billing';
-import { createAppointment } from '../../../api/patients';
+import { createAppointment, updateAppointment } from '../../../api/patients';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -485,6 +485,18 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
     } finally { setSaving(false); }
   };
 
+  const handleCompleteConsultation = async () => {
+    setSaving(true);
+    try {
+      await updateAppointment(appointment.id, { status: 'completed' });
+      onClose(); // Parent component should re-fetch to reflect the status update
+    } catch (err) {
+      alert('Failed to complete consultation');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // -- Therapies Logic --
   const handleUpdatePatientTherapyStatus = async (therapyId, newStatus) => {
     try {
@@ -757,6 +769,9 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                   <button type="button" className="btn" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, background: '#25D366', color: 'white', border: 'none' }} onClick={() => sendWhatsApp(createdBill)}>
                     <FaWhatsapp size={20} /> Send via WhatsApp
                   </button>
+                  <button type="button" className="btn btn-success" onClick={handleCompleteConsultation} disabled={saving} style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                    <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
+                  </button>
                 </div>
               )}
             </form>
@@ -961,6 +976,18 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                   )}
                 </div>
               )}
+              
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-success" 
+                  onClick={handleCompleteConsultation}
+                  disabled={saving}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '1rem', fontWeight: 600 }}
+                >
+                  <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -1053,9 +1080,20 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                 <textarea className="input" rows="3" value={aptForm.reason} onChange={e => setAptForm({...aptForm, reason: e.target.value})} placeholder="Reason for follow-up..."></textarea>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving || aptSaved}>
-                <FaCalendarPlus /> {saving ? 'Booking...' : 'Book Follow-up'}
-              </button>
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving || aptSaved}>
+                  <FaCalendarPlus /> {saving ? 'Booking...' : 'Book Follow-up'}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-success" 
+                  onClick={handleCompleteConsultation}
+                  disabled={saving}
+                  style={{ flex: 1, padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}
+                >
+                  <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
+                </button>
+              </div>
             </form>
           )}
 
