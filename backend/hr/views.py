@@ -114,10 +114,16 @@ class AttendanceListView(generics.ListAPIView):
         date = self.request.query_params.get('date')
         if date:
             qs = qs.filter(date=date)
+        date_from = self.request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(date__gte=date_from)
+        date_to = self.request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(date__lte=date_to)
         employee_id = self.request.query_params.get('employee')
         if employee_id:
             qs = qs.filter(employee_id=employee_id)
-        return qs
+        return qs.order_by('-date')
 
 
 class MyAttendanceView(generics.ListAPIView):

@@ -212,6 +212,36 @@ export default function AppointmentList() {
                   style={{ maxWidth: 130 }}
                 />
               </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {[
+                  { label: 'All', days: null },
+                  { label: 'Today', days: 0 },
+                  { label: '7d', days: 7 },
+                  { label: '15d', days: 15 },
+                  { label: '30d', days: 30 },
+                ].map(opt => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const cutoff = opt.days !== null && opt.days > 0
+                    ? new Date(Date.now() - opt.days * 86400000).toISOString().split('T')[0]
+                    : opt.days === 0 ? today : '';
+                  const isActive = opt.days === null ? (!startDate && !endDate && !filterDate) : (startDate === cutoff && endDate === today);
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => {
+                        if (opt.days === null) { setStartDate(''); setEndDate(''); setFilterDate(''); }
+                        else if (opt.days === 0) { setFilterDate(today); setStartDate(''); setEndDate(''); }
+                        else { setStartDate(cutoff); setEndDate(today); setFilterDate(''); }
+                      }}
+                      style={{ padding: '6px 12px', minWidth: opt.label.length <= 3 ? '40px' : 'auto' }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
           <input

@@ -54,6 +54,9 @@ class PatientDetailSerializer(serializers.ModelSerializer):
         model = Patient
         fields = '__all__'
         read_only_fields = ('id', 'uhid', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'gender': {'required': True},
+        }
 
     def get_full_name(self, obj):
         return obj.get_full_name()

@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getPatients } from '../../../api/patients';
-import { getAppointments } from '../../../api/patients';
+import { getAppointments, updateAppointment } from '../../../api/patients';
 import { getPrescriptions } from '../../../api/medicines';
 import { getMyCampaigns } from '../../../api/campaigns';
 import { getSlotCapacity, updateSlotCapacity } from '../../../api/branches';
 import { getBills } from '../../../api/billing';
-import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar, FaUserPlus } from 'react-icons/fa';
+import { FaUserInjured, FaCalendarCheck, FaPrescriptionBottleAlt, FaBullhorn, FaCalendarAlt, FaClock, FaUsers, FaStethoscope, FaBolt, FaFileInvoiceDollar, FaUserPlus, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
 import ConsultationWorkspace from './ConsultationWorkspace';
 
 function StatCard({ icon, label, value, color, link }) {
@@ -31,9 +31,18 @@ export default function DoctorDashboard() {
   const [capacityMsg, setCapacityMsg] = useState(null);
   const [savingCapacity, setSavingCapacity] = useState(false);
 
+  // Missing appointments state
+  const [missingAppts, setMissingAppts] = useState([]);
+  const [selectedMissing, setSelectedMissing] = useState([]);
+  const [completingMissing, setCompletingMissing] = useState(false);
+  const [missingNotes, setMissingNotes] = useState('');
+
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
+  const fetchDashboardData = () => {
+    const now = new Date();
+    const currentHour = `${String(now.getHours()).padStart(2, '0')}:00:00`;
+
     Promise.allSettled([
       getPatients(),
       getAppointments({ date: today }),
@@ -51,13 +60,22 @@ export default function DoctorDashboard() {
       });
       if (a.status === 'fulfilled') {
         const list = a.value.data.results || a.value.data;
-        setTodayAppts(Array.isArray(list) ? list.slice(0, 5) : []);
+        const allAppts = Array.isArray(list) ? list : [];
+        setTodayAppts(allAppts.slice(0, 5));
+
+        // Find missing: scheduled appointments whose time slot has passed
+        const missing = allAppts.filter(apt =>
+          apt.status === 'scheduled' && apt.scheduled_time && apt.scheduled_time < currentHour
+        );
+        setMissingAppts(missing);
       }
       if (cap.status === 'fulfilled') {
         setMaxPatients(cap.value.data.max_patients_per_slot);
       }
     });
-  }, []);
+  };
+
+  useEffect(() => { fetchDashboardData(); }, []);
 
   const handleSaveCapacity = async (e) => {
     e.preventDefault();
@@ -71,6 +89,37 @@ export default function DoctorDashboard() {
       setCapacityMsg({ type: 'error', text: err.response?.data?.detail || 'Failed to update capacity.' });
     } finally {
       setSavingCapacity(false);
+    }
+  };
+
+  const handleToggleMissing = (id) => {
+    setSelectedMissing(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllMissing = () => {
+    if (selectedMissing.length === missingAppts.length) {
+      setSelectedMissing([]);
+    } else {
+      setSelectedMissing(missingAppts.map(a => a.id));
+    }
+  };
+
+  const handleCompleteMissing = async (ids) => {
+    if (ids.length === 0) return;
+    setCompletingMissing(true);
+    try {
+      await Promise.all(
+        ids.map(id => updateAppointment(id, { status: 'completed', notes: missingNotes || 'Marked completed (missed slot)' }))
+      );
+      setSelectedMissing([]);
+      setMissingNotes('');
+      fetchDashboardData();
+    } catch {
+      alert('Failed to complete some appointments.');
+    } finally {
+      setCompletingMissing(false);
     }
   };
 
@@ -88,6 +137,81 @@ export default function DoctorDashboard() {
         <StatCard icon={<FaBullhorn />} label="Active Campaigns" value={stats.campaigns} color="orange" link="/dashboard/my-campaigns" />
         <StatCard icon={<FaFileInvoiceDollar />} label="Udhari Due Today" value={stats.udhariDueToday} color="red" link={`/dashboard/billing?is_udhari=true&udhari_due_date=${today}`} />
       </div>
+
+      {/* Missing Appointments Alert */}
+      {missingAppts.length > 0 && (
+        <div className="card" style={{ marginBottom: 24, border: '2px solid var(--warning)', borderRadius: 16 }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(245, 158, 11, 0.08)' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: 'var(--warning)' }}>
+              <FaExclamationTriangle /> Missing Appointments ({missingAppts.length})
+            </h4>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={handleSelectAllMissing}
+                style={{ fontSize: '0.8rem' }}
+              >
+                {selectedMissing.length === missingAppts.length ? 'Deselect All' : 'Select All'}
+              </button>
+              <button
+                className="btn btn-sm"
+                style={{ background: 'var(--success)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                onClick={() => handleCompleteMissing(missingAppts.map(a => a.id))}
+                disabled={completingMissing}
+              >
+                <FaCheck size={11}/> Complete All
+              </button>
+            </div>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {missingAppts.map(a => (
+              <div key={a.id} style={{
+                padding: '12px 20px',
+                borderBottom: '1px solid var(--border-card)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: selectedMissing.includes(a.id) ? 'rgba(5, 150, 105, 0.04)' : 'transparent'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedMissing.includes(a.id)}
+                    onChange={() => handleToggleMissing(a.id)}
+                    style={{ cursor: 'pointer', width: 16, height: 16 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{a.patient_name || 'Patient'}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <FaClock size={11}/> {a.scheduled_time} · {a.reason || 'General'}
+                    </div>
+                  </div>
+                </div>
+                <span className="badge badge-warning">Missed</span>
+              </div>
+            ))}
+            {selectedMissing.length > 0 && (
+              <div style={{ padding: '12px 20px', background: 'var(--bg)', display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input
+                  className="input"
+                  placeholder="Notes for completion..."
+                  value={missingNotes}
+                  onChange={e => setMissingNotes(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={() => handleCompleteMissing(selectedMissing)}
+                  disabled={completingMissing}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}
+                >
+                  <FaCheck size={11}/> {completingMissing ? 'Completing...' : `Complete ${selectedMissing.length} Selected`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-panels">
         {/* Today's appointments */}
@@ -224,7 +348,7 @@ export default function DoctorDashboard() {
       </div>
       
       {activeConsultation && (
-        <ConsultationWorkspace appointment={activeConsultation} onClose={() => setActiveConsultation(null)} />
+        <ConsultationWorkspace appointment={activeConsultation} onClose={() => { setActiveConsultation(null); fetchDashboardData(); }} />
       )}
     </div>
   );

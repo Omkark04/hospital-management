@@ -15,20 +15,27 @@ export default function AttendanceList() {
   const [records, setRecords] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [closing, setClosing] = useState(false);
   const { user } = useAuth();
+  
+  const today = new Date().toISOString().split('T')[0];
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    const params = { date };
+    const params = {};
+    if (startDate) params.date_from = startDate;
+    if (endDate) params.date_to = endDate;
+    if (!startDate && !endDate) params.date = today; // default to today if no range selected
     if (employeeFilter) params.employee = employeeFilter;
+
     getAttendance(params)
       .then(({ data }) => setRecords(data.results || data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [date, employeeFilter]);
+  }, [startDate, endDate, employeeFilter, today]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -45,10 +52,11 @@ export default function AttendanceList() {
   }));
 
   const handleCloseDay = async () => {
-    if (!window.confirm(`Are you sure you want to close attendance for ${date}? This will mark non-scanned employees as Absent and auto-checkout open records.`)) return;
+    const targetDate = startDate || today;
+    if (!window.confirm(`Are you sure you want to close attendance for ${targetDate}? This will mark non-scanned employees as Absent and auto-checkout open records.`)) return;
     setClosing(true);
     try {
-      const res = await closeDay(date);
+      const res = await closeDay(targetDate);
       alert(res.data.message);
       fetchData();
     } catch (err) {
@@ -67,25 +75,45 @@ export default function AttendanceList() {
           <h2>Attendance Log</h2>
           <p>View employee check-ins and check-outs. Attendance is marked via QR scan.</p>
         </div>
-        <div className="page-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <input
-            type="date"
-            className="input"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            style={{ maxWidth: 160 }}
-          />
-          <select
-            className="input"
-            value={employeeFilter}
-            onChange={e => setEmployeeFilter(e.target.value)}
-            style={{ maxWidth: 220 }}
-          >
+        <div className="page-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>From:</span>
+            <input type="date" className="input" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ maxWidth: 130 }} />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>To:</span>
+            <input type="date" className="input" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ maxWidth: 130 }} />
+          </div>
+          
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {[
+              { label: 'Today', days: 0 },
+              { label: '7d', days: 7 },
+              { label: '15d', days: 15 },
+              { label: '30d', days: 30 },
+            ].map(opt => {
+              const cutoff = opt.days > 0 ? new Date(Date.now() - opt.days * 86400000).toISOString().split('T')[0] : today;
+              const isActive = (startDate === cutoff && endDate === today) || (opt.days === 0 && !startDate && !endDate);
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => {
+                    if (opt.days === 0) { setStartDate(''); setEndDate(''); } // default implies today
+                    else { setStartDate(cutoff); setEndDate(today); }
+                  }}
+                  style={{ padding: '6px 12px', minWidth: opt.label.length <= 3 ? '40px' : 'auto' }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <select className="input" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)} style={{ maxWidth: 220 }}>
             <option value="">All Employees</option>
-            {employees.map(e => (
-              <option key={e.id} value={e.id}>{e.full_name} — {e.designation}</option>
-            ))}
+            {employees.map(e => <option key={e.id} value={e.id}>{e.full_name} — {e.designation}</option>)}
           </select>
+
           {(user?.role === 'owner' || user?.role === 'doctor') && (
             <button className="btn btn-outline" onClick={handleCloseDay} disabled={closing}>
               {closing ? 'Closing...' : 'Close Day'}
@@ -126,7 +154,7 @@ export default function AttendanceList() {
             </div>
             <h3>No attendance records</h3>
             <p style={{ color: 'var(--text-muted)' }}>
-              No records found for {date}. Attendance is logged automatically when staff scan the QR kiosk.
+              No records found for {startDate && endDate ? `${startDate} to ${endDate}` : startDate || endDate || today}. Attendance is logged automatically when staff scan the QR kiosk.
             </p>
           </div>
         ) : (

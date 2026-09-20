@@ -93,7 +93,7 @@ class Patient(models.Model):
     phone = models.CharField(max_length=15)
     email = models.EmailField(blank=True)
     dob = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=GenderChoices.choices, default=GenderChoices.OTHER)
+    gender = models.CharField(max_length=10, choices=GenderChoices.choices, blank=True)
     blood_group = models.CharField(max_length=10, choices=BloodGroupChoices.choices, default=BloodGroupChoices.UNKNOWN)
     address = models.TextField(blank=True)
     emergency_contact_name = models.CharField(max_length=100, blank=True)

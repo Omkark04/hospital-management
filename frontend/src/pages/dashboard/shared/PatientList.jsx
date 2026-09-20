@@ -216,6 +216,32 @@ export default function PatientList() {
             <option value="30d">Last Visit: 30 Days</option>
             <option value="90d">Last Visit: 90 Days</option>
           </select>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {[
+              { label: 'All', value: '' },
+              { label: 'Today', value: 0 },
+              { label: '7d', value: 7 },
+              { label: '15d', value: 15 },
+              { label: '30d', value: 30 },
+            ].map(opt => {
+              const expectedFilter = opt.value === 0 ? '1d' : opt.value === '' ? '' : `${opt.value}d`;
+              const isActive = lastVisitFilter === expectedFilter;
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => {
+                    setLastVisitFilter(expectedFilter);
+                    setPage(1);
+                  }}
+                  style={{ padding: '6px 12px', minWidth: opt.label.length <= 3 ? '40px' : 'auto' }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
           <button onClick={() => { setImportFile(null); setImportResult(null); setImportError(null); setShowImportModal(true); }} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <FaUpload /> Import
           </button>

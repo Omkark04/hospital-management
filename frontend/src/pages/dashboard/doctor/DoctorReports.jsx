@@ -1,29 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, ComposedChart, Bar
 } from 'recharts';
 import api from '../../../api/axios';
-import { FaChartArea, FaWalking, FaStethoscope, FaCalendarCheck } from 'react-icons/fa';
+import { FaChartArea, FaWalking, FaStethoscope, FaCalendarCheck, FaMoneyBillWave } from 'react-icons/fa';
 
 const COLORS = ['#D17C43', '#3C8E7F', '#F59E0B', '#111827', '#0D9488'];
+
+const DAY_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'Today', value: 1 },
+  { label: '7 Days', value: 7 },
+  { label: '15 Days', value: 15 },
+  { label: '30 Days', value: 30 },
+];
+
+function DayToggle({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', borderRadius: 8, padding: 3 }}>
+      {DAY_OPTIONS.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          style={{
+            padding: '5px 12px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            background: value === opt.value ? 'var(--primary)' : 'transparent',
+            color: value === opt.value ? '#fff' : 'var(--text-muted)',
+            transition: 'all 0.2s',
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function DoctorReports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    api.get('/reports/doctor-summary/')
-      .then(res => {
-        setData(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to fetch report data.');
-        setLoading(false);
-      });
-  }, []);
+  // Per-chart filters
+  const [footfallDays, setFootfallDays] = useState(7);
+  const [diagnosisDays, setDiagnosisDays] = useState(7);
+  const [conversionDays, setConversionDays] = useState(7);
+
+  const maxDays = [footfallDays, diagnosisDays, conversionDays].includes('all') ? 'all' : Math.max(footfallDays, diagnosisDays, conversionDays, 7);
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.append('days', maxDays);
+    if (footfallDays) params.append('footfall_days', footfallDays);
+    if (diagnosisDays) params.append('diagnosis_days', diagnosisDays);
+    if (conversionDays) params.append('conversion_days', conversionDays);
+
+    api.get(`/reports/doctor-summary/?${params.toString()}`)
+      .then(res => { setData(res.data); setLoading(false); })
+      .catch(() => { setError('Failed to fetch report data.'); setLoading(false); });
+  }, [maxDays, footfallDays, diagnosisDays, conversionDays]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
@@ -52,6 +97,8 @@ export default function DoctorReports() {
     value: d.count
   }));
 
+  const rev = data.revenue || {};
+
   return (
     <div style={{ paddingBottom: 40 }}>
       <div style={{ marginBottom: 32 }}>
@@ -61,13 +108,28 @@ export default function DoctorReports() {
         <p style={{ color: 'var(--text-muted)' }}>Deep dive into your clinical outcomes and appointment statistics.</p>
       </div>
 
+      {/* Revenue Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="card card-body" style={{ padding: '16px 20px', borderLeft: '4px solid var(--moss)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Revenue</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--moss)' }}>₹{(rev.total || 0).toLocaleString('en-IN')}</div>
+        </div>
+        <div className="card card-body" style={{ padding: '16px 20px', borderLeft: '4px solid var(--success)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Collected</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>₹{(rev.collected || 0).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 24, marginBottom: 24 }}>
         
-        {/* Footfall line chart */}
+        {/* Footfall */}
         <div className="card card-body" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '16px', padding: 24 }}>
-          <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, color: 'var(--text-primary)' }}>
-            <FaWalking style={{ color: 'var(--copper)' }}/> Patient Footfall (Past 7 Days)
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: 'var(--text-primary)' }}>
+              <FaWalking style={{ color: 'var(--copper)' }}/> Patient Footfall
+            </h4>
+            <DayToggle value={footfallDays} onChange={setFootfallDays} />
+          </div>
           <div style={{ width: '100%', height: 280 }}>
             {footfallData.length > 0 ? (
               <ResponsiveContainer>
@@ -80,16 +142,19 @@ export default function DoctorReports() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No completed appointments</div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No completed appointments</div>
             )}
           </div>
         </div>
 
-        {/* Diagnoses distribution pie chart */}
+        {/* Diagnoses */}
         <div className="card card-body" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '16px', padding: 24 }}>
-          <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, color: 'var(--text-primary)' }}>
-            <FaStethoscope style={{ color: 'var(--moss)' }}/> Primary Diagnoses Breakdown
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: 'var(--text-primary)' }}>
+              <FaStethoscope style={{ color: 'var(--moss)' }}/> Primary Diagnoses
+            </h4>
+            <DayToggle value={diagnosisDays} onChange={setDiagnosisDays} />
+          </div>
           <div style={{ width: '100%', height: 280 }}>
             {diagnosesData.length > 0 ? (
               <ResponsiveContainer>
@@ -104,35 +169,36 @@ export default function DoctorReports() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No visit notes logged</div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No visit notes logged</div>
             )}
           </div>
         </div>
-
       </div>
 
       {/* Appointment Conversion */}
       <div className="card card-body" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '16px', padding: 32 }}>
-        <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, color: 'var(--text-primary)' }}>
-           <FaCalendarCheck style={{ color: 'var(--primary)' }}/> Appointment Conversion (Past 7 Days)
-        </h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: 'var(--text-primary)' }}>
+            <FaCalendarCheck style={{ color: 'var(--primary)' }}/> Appointment Conversion
+          </h4>
+          <DayToggle value={conversionDays} onChange={setConversionDays} />
+        </div>
         <div style={{ width: '100%', height: 250 }}>
-            {statusData.length > 0 ? (
-                <ResponsiveContainer>
-                  <ComposedChart data={statusData} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB"/>
-                    <XAxis type="number" axisLine={false} tickLine={false}/>
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={120}/>
-                    <RechartsTooltip cursor={{fill: '#f3f4f6'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="value" barSize={32} fill="var(--copper)" radius={[0, 8, 8, 0]} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-            ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No appointment status data</div>
-            )}
+          {statusData.length > 0 ? (
+            <ResponsiveContainer>
+              <ComposedChart data={statusData} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB"/>
+                <XAxis type="number" axisLine={false} tickLine={false}/>
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={120}/>
+                <RechartsTooltip cursor={{fill: '#f3f4f6'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="value" barSize={32} fill="var(--copper)" radius={[0, 8, 8, 0]} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No appointment status data</div>
+          )}
         </div>
       </div>
-      
     </div>
   );
 }

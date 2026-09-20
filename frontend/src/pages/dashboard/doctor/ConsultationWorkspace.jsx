@@ -757,23 +757,32 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                 </div>
               )}
 
-              {!billSaved ? (
-                <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving}>
-                  <FaFileInvoice /> {saving ? 'Processing...' : 'Generate & Pay Bill'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {!billSaved ? (
+                  <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} disabled={saving}>
+                    <FaFileInvoice /> {saving ? 'Processing...' : 'Generate & Pay Bill'}
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} onClick={() => handleDirectInvoiceDownload(createdBill)}>
+                      <FaFileInvoice /> Download Bill
+                    </button>
+                    <button type="button" className="btn" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, background: '#25D366', color: 'white', border: 'none' }} onClick={() => sendWhatsApp(createdBill)}>
+                      <FaWhatsapp size={20} /> Send WhatsApp
+                    </button>
+                  </div>
+                )}
+                
+                <button 
+                  type="button" 
+                  className="btn btn-success" 
+                  onClick={handleCompleteConsultation} 
+                  disabled={saving || !billSaved} 
+                  style={{ width: '100%', padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600, marginTop: 4 }}
+                >
+                  <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
                 </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} onClick={() => handleDirectInvoiceDownload(createdBill)}>
-                    <FaFileInvoice /> Download Bill
-                  </button>
-                  <button type="button" className="btn" style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, background: '#25D366', color: 'white', border: 'none' }} onClick={() => sendWhatsApp(createdBill)}>
-                    <FaWhatsapp size={20} /> Send via WhatsApp
-                  </button>
-                  <button type="button" className="btn btn-success" onClick={handleCompleteConsultation} disabled={saving} style={{ flex: 1, padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                    <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
-                  </button>
-                </div>
-              )}
+              </div>
             </form>
           )}
 
@@ -982,7 +991,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                   type="button" 
                   className="btn btn-success" 
                   onClick={handleCompleteConsultation}
-                  disabled={saving}
+                  disabled={saving || !billSaved}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '1rem', fontWeight: 600 }}
                 >
                   <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
@@ -1088,7 +1097,7 @@ export default function ConsultationWorkspace({ appointment, onClose }) {
                   type="button" 
                   className="btn btn-success" 
                   onClick={handleCompleteConsultation}
-                  disabled={saving}
+                  disabled={saving || !billSaved}
                   style={{ flex: 1, padding: '12px', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}
                 >
                   <FaCheck /> {saving ? 'Completing...' : 'Complete Consultation'}
